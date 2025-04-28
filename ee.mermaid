@@ -1,0 +1,28 @@
+graph TD
+    subgraph "裁判文书撰写教学智能体架构 (Judgment Writing Teaching Agent Architecture)"
+
+        U[用户 User] --> |用户输入 User Input| S{SysAI 系统协调};
+
+        subgraph "智能体交互与决策 (Agent Interaction & Decision)"
+
+            S -- 需要法律专业知识? --> L(LegalAI 法律专业);
+            L -- 法律分析结果 --> S;
+
+            S -- 需要教学引导? --> E(EduAI 教学引导);
+            E -- 教学引导/问题 --> S;
+
+            S -- 请求检索 --> R[(RAG 知识库 Knowledge Base)];
+            R -- 检索结果 --> S;
+
+            E -- 请求检索 --> R;
+            R -- 检索结果 --> E;
+        end
+
+        S --> |整合最终回复 Final Response| U;
+    end
+
+    style S fill:#f9f,stroke:#333,stroke-width:2px
+    style L fill:#ccf,stroke:#333,stroke-width:2px
+    style E fill:#cfc,stroke:#333,stroke-width:2px
+    style R fill:#ffc,stroke:#333,stroke-width:1px,stroke-dasharray: 5 5
+    style U fill:#eee,stroke:#333,stroke-width:2px

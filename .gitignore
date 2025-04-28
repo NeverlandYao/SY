@@ -1,0 +1,39 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+*.egg-info/
+.tox/
+.nox/
+dist/
+build/
+develop-eggs/
+eggs/
+sdist/
+var/
+*.so
+.coverage
+.coverage.*
+.cache
+.pytest_cache/
+.mypy_cache/
+.dmypy.json
+.pyre/
+.hypothesis/
+.ipynb_checkpoints
+
+# Editor-specific
+.vscode/
+.history/
+# Data files
+Model_py.xlsx
+
+# Generated images
+dimension_png/
