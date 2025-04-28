@@ -14,7 +14,7 @@ from datetime import datetime # 添加于页脚年份
 
 import os
 app = Flask(__name__, template_folder='template')
-
+print(1234)
 # 全局变量
 student_data = None
 agent = None
