@@ -26,7 +26,7 @@ LABEL_MAP = {
 # 智能体配置
 MODELSCOPE_CONFIG = {
     'base_url': 'https://api-inference.modelscope.cn/v1/',
-    'api_key': '9a1aa6b1-0abd-44ed-aff5-a8120466fbf1',
+    'api_key': '',
     'model_id': 'Qwen/Qwen2.5-7B-Instruct-1M'
 }
 
