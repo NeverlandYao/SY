@@ -14,7 +14,7 @@ from datetime import datetime # 添加于页脚年份
 
 import os
 app = Flask(__name__, template_folder='template')
-print("呱呱呱")
+
 # 全局变量
 student_data = None
 agent = None
@@ -238,11 +238,11 @@ def index():
 
 
 @app.route('/api/student/<int:student_id>')
-def get_student_data(student_id):
-    """API endpoint to get detailed data for a single student."""
-    global student_data, agent, system_ready
+def get_student_basic_data(student_id):
+    """API endpoint to get basic data and detailed metrics for a single student."""
+    global student_data, system_ready
 
-    if not system_ready or agent is None or student_data is None:
+    if not system_ready or student_data is None:
         return jsonify({"error": "System not ready"}), 500
 
     # 验证 student_id
@@ -250,22 +250,7 @@ def get_student_data(student_id):
         return jsonify({"error": f"找不到学生ID {student_id}"}), 404
 
     try:
-        # --- 获取所有数据组件 ---
-        # 1. 基本分析（包括 0-1 范围内的分数和专家诊断）
-        analysis = agent.analyze_student(student_id)
-        if not analysis:  # analyze_student 可能返回 None 如果 ID 最初无效（双重检查）
-            return jsonify({"error": f"无法分析学生 {student_id}"}), 500
-
-        # 2. 推荐
-        recommendations = agent.generate_recommendations(student_id)
-
-        # 3. 干预计划
-        intervention_plan = agent.generate_intervention_plan(student_id)
-
-        # 4. 学习资源
-        learning_resources = agent.generate_learning_resources(student_id)
-
-        # 5. 来自 DataFrame 的详细指标
+        # 1. 从 DataFrame 获取基本信息和详细指标
         student_row = student_data[student_data['student_id'] == student_id].iloc[0]
         detail_metrics = []
         for col in student_row.index:
@@ -282,26 +267,67 @@ def get_student_data(student_id):
 
         # --- 合并为一个响应对象 ---
         response_data = {
-            "student_id": analysis.get('student_id'),
-            "student_type": analysis.get('student_type', '待分类'),
+            "student_id": int(student_row.get('student_id')),
+            "student_type": student_row.get('学生类型', '待分类'),
             # 将分数缩放到 0-100 以用于前端
-            "knowledge_score": int(analysis.get('knowledge_score', 0) * 100) if pd.notna(analysis.get('knowledge_score')) else 0,
-            "cognitive_score": int(analysis.get('cognitive_score', 0) * 100) if pd.notna(analysis.get('cognitive_score')) else 0,
-            "affective_score": int(analysis.get('affective_score', 0) * 100) if pd.notna(analysis.get('affective_score')) else 0,
-            "behavioral_score": int(analysis.get('behavioral_score', 0) * 100) if pd.notna(analysis.get('behavioral_score')) else 0,
-            "expert_diagnosis": analysis.get('expert_diagnosis', '暂无分析'),
+            "knowledge_score": int(student_row.get('知识维度_综合得分', 0) * 100) if pd.notna(student_row.get('知识维度_综合得分')) else 0,
+            "cognitive_score": int(student_row.get('认知维度_综合得分', 0) * 100) if pd.notna(student_row.get('认知维度_综合得分')) else 0,
+            "affective_score": int(student_row.get('情感维度_综合得分', 0) * 100) if pd.notna(student_row.get('情感维度_综合得分')) else 0,
+            "behavioral_score": int(student_row.get('行为维度_综合得分', 0) * 100) if pd.notna(student_row.get('行为维度_综合得分')) else 0,
             "detail_metrics": detail_metrics,
-            "recommendations": recommendations,
-            "intervention_plan": intervention_plan,
-            "learning_resources": learning_resources
         }
 
         return jsonify(response_data)
 
     except Exception as e:
-        print(f"获取学生数据出错: {e}")
+        print(f"获取学生基本数据出错: {e}")
         traceback.print_exc()
-        return jsonify({"error": f"无法获取学生 {student_id} 的数据: {str(e)}"}), 500
+        return jsonify({"error": f"无法获取学生 {student_id} 的基本数据: {str(e)}"}), 500
+
+@app.route('/api/student/<int:student_id>/details')
+def get_student_details(student_id):
+    """API endpoint to get detailed analysis, recommendations, etc. for a single student."""
+    global student_data, agent, system_ready
+
+    if not system_ready or agent is None or student_data is None:
+        return jsonify({"error": "System not ready"}), 500
+
+    # 验证 student_id
+    if student_id not in student_data['student_id'].values:
+        return jsonify({"error": f"找不到学生ID {student_id}"}), 404
+
+    try:
+        # --- 获取详细数据组件 ---
+        # 1. 基本分析（包括 0-1 范围内的分数和专家诊断）
+        analysis = agent.analyze_student(student_id)
+        if not analysis:  # analyze_student 可能返回 None 如果 ID 最初无效（双重检查）
+            return jsonify({"error": f"无法分析学生 {student_id}"}), 500
+
+        # 2. 推荐
+        recommendations = agent.generate_recommendations(student_id)
+
+        # 3. 干预计划 (如果已实现)
+        # intervention_plan = agent.generate_intervention_plan(student_id)
+
+        # 4. 学习资源 (如果已实现)
+        # learning_resources = agent.generate_learning_resources(student_id)
+
+        # --- 合并为一个响应对象 ---
+        response_data = {
+            "student_id": analysis.get('student_id'),
+            "expert_diagnosis": analysis.get('expert_diagnosis', '暂无分析'),
+            "recommendations": recommendations,
+            # "intervention_plan": intervention_plan,
+            # "learning_resources": learning_resources
+        }
+
+        return jsonify(response_data)
+
+    except Exception as e:
+        print(f"获取学生详细数据出错: {e}")
+        traceback.print_exc()
+        return jsonify({"error": f"无法获取学生 {student_id} 的详细数据: {str(e)}"}), 500
+
 
 # 移除旧的 /student/<id> 和 /api/recommendations/<id> 路由
 # 简单的错误模板路由（可选，但建议使用）

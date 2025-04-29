@@ -318,10 +318,31 @@
             if (!studentId) {
                 console.warn("No student ID provided for update.");
                 document.getElementById('student-details').innerHTML = `<p class="text-gray-700">请选择一个学生查看详细信息。</p>`;
+                // 清空其他区域
+                document.getElementById('student-id').textContent = '';
+                document.getElementById('student-type').textContent = '';
+                document.getElementById('student-type').className = `inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800`;
+                document.getElementById('knowledge-score').textContent = '';
+                document.getElementById('cognition-score').textContent = '';
+                document.getElementById('affection-score').textContent = '';
+                document.getElementById('behavior-score').textContent = '';
+                updateRecommendationCard('knowledge-recommendations', []);
+                updateRecommendationCard('cognitive-recommendations', []);
+                updateRecommendationCard('affective-recommendations', []);
+                updateRecommendationCard('behavioral-recommendations', []);
+                updateRadarCharts({}); // 清空雷达图
                 return;
             }
 
-            // Fetch student data from the correct endpoint (确保 studentId 是字符串)
+            // 显示加载状态
+            document.getElementById('student-details').innerHTML = `<p class="text-gray-700">正在加载学生 ${studentId} 的基本数据...</p>`;
+            updateRecommendationCard('knowledge-recommendations', ['加载中...']);
+            updateRecommendationCard('cognitive-recommendations', ['加载中...']);
+            updateRecommendationCard('affective-recommendations', ['加载中...']);
+            updateRecommendationCard('behavioral-recommendations', ['加载中...']);
+
+
+            // 1. Fetch student basic data
             fetch(`http://127.0.0.1:5010/api/student/${String(studentId)}`)
                 .then(response => {
                     if (!response.ok) {
@@ -329,37 +350,35 @@
                     }
                     return response.json();
                 })
-                .then(data => {
-                    console.log(data)
-                    console.log("获取了某个学生数据！")
-                    if (!data || data.error) {
-                        console.error("Error fetching student data:", data ? data.error : "No data received");
-                        // Optionally display an error message to the user
-                        document.getElementById('student-details').innerHTML = `<p class="text-red-500">无法加载学生 ${studentId} 的数据。</p>`;
+                .then(basicData => {
+                    console.log("获取了学生基本数据:", basicData);
+                    if (!basicData || basicData.error) {
+                        console.error("Error fetching student basic data:", basicData ? basicData.error : "No data received");
+                        document.getElementById('student-details').innerHTML = `<p class="text-red-500">无法加载学生 ${studentId} 的基本数据。</p>`;
                         return;
                     }
 
                     // 更新基本信息
-                    document.getElementById('student-id').textContent = data.student_id || 'N/A';
+                    document.getElementById('student-id').textContent = basicData.student_id || 'N/A';
                     const typeElement = document.getElementById('student-type');
-                    typeElement.textContent = data.student_type || '待分类';
-                    typeElement.className = `inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getTypeClass(data.student_type)}`;
+                    typeElement.textContent = basicData.student_type || '待分类';
+                    typeElement.className = `inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getTypeClass(basicData.student_type)}`;
 
-                    // 更新四个维度的分数 (确保从 data 对象获取)
-                    document.getElementById('knowledge-score').textContent = data.knowledge_score !== undefined ? data.knowledge_score : 'N/A';
-                    document.getElementById('cognition-score').textContent = data.cognitive_score !== undefined ? data.cognitive_score : 'N/A';
-                    document.getElementById('affection-score').textContent = data.affective_score !== undefined ? data.affective_score : 'N/A';
-                    document.getElementById('behavior-score').textContent = data.behavioral_score !== undefined ? data.behavioral_score : 'N/A';
+                    // 更新四个维度的分数
+                    document.getElementById('knowledge-score').textContent = basicData.knowledge_score !== undefined ? basicData.knowledge_score : 'N/A';
+                    document.getElementById('cognition-score').textContent = basicData.cognitive_score !== undefined ? basicData.cognitive_score : 'N/A';
+                    document.getElementById('affection-score').textContent = basicData.affective_score !== undefined ? basicData.affective_score : 'N/A';
+                    document.getElementById('behavior-score').textContent = basicData.behavioral_score !== undefined ? basicData.behavioral_score : 'N/A';
 
-                    // 更新详细信息区域 (显示专家诊断和详细指标)
+                    // 更新详细信息区域 (只显示详细指标，专家诊断将在第二步加载)
                     let detailsHTML = `
                         <h3 class="text-lg font-semibold mb-2 text-gray-800">专家诊断</h3>
-                        <p class="text-gray-700 mb-4">${data.expert_diagnosis || '暂无诊断信息'}</p>
+                        <p class="text-gray-700 mb-4" id="expert-diagnosis">加载中...</p>
                         <h3 class="text-lg font-semibold mb-2 text-gray-800">详细指标</h3>
                     `;
-                    if (data.detail_metrics && data.detail_metrics.length > 0) {
+                    if (basicData.detail_metrics && basicData.detail_metrics.length > 0) {
                         detailsHTML += '<ul class="list-disc pl-5 text-gray-700 mb-4">';
-                        data.detail_metrics.forEach(metric => {
+                        basicData.detail_metrics.forEach(metric => {
                             detailsHTML += `<li>${metric.name}: ${metric.value}</li>`;
                         });
                         detailsHTML += '</ul>';
@@ -368,18 +387,64 @@
                     }
                     document.getElementById('student-details').innerHTML = detailsHTML;
 
-                    // 更新学业规划建议卡片
-                    updateRecommendationCard('knowledge-recommendations', data.recommendations?.knowledge);
-                    updateRecommendationCard('cognitive-recommendations', data.recommendations?.cognitive);
-                    updateRecommendationCard('affective-recommendations', data.recommendations?.affective);
-                    updateRecommendationCard('behavioral-recommendations', data.recommendations?.behavioral);
+                    // 更新雷达图 (传递基本数据)
+                    updateRadarCharts(basicData);
 
-                    // 更新雷达图 (传递整个 data 对象)
-                    updateRadarCharts(data);
+                    // 2. Fetch student detailed data
+                    document.getElementById('expert-diagnosis').textContent = '加载中...'; // 更新诊断区域加载状态
+                    updateRecommendationCard('knowledge-recommendations', ['加载中...']);
+                    updateRecommendationCard('cognitive-recommendations', ['加载中...']);
+                    updateRecommendationCard('affective-recommendations', ['加载中...']);
+                    updateRecommendationCard('behavioral-recommendations', ['加载中...']);
+
+
+                    fetch(`http://127.0.0.1:5010/api/student/${String(studentId)}/details`)
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error(`HTTP error! status: ${response.status}`);
+                            }
+                            return response.json();
+                        })
+                        .then(detailData => {
+                            console.log("获取了学生详细数据:", detailData);
+                            if (!detailData || detailData.error) {
+                                console.error("Error fetching student detailed data:", detailData ? detailData.error : "No data received");
+                                document.getElementById('expert-diagnosis').textContent = `无法加载详细数据: ${detailData ? detailData.error : '未知错误'}`;
+                                updateRecommendationCard('knowledge-recommendations', ['加载失败']);
+                                updateRecommendationCard('cognitive-recommendations', ['加载失败']);
+                                updateRecommendationCard('affective-recommendations', ['加载失败']);
+                                updateRecommendationCard('behavioral-recommendations', ['加载失败']);
+                                return;
+                            }
+
+                            // 更新专家诊断
+                            document.getElementById('expert-diagnosis').textContent = detailData.expert_diagnosis || '暂无诊断信息';
+
+                            // 更新学业规划建议卡片
+                            updateRecommendationCard('knowledge-recommendations', detailData.recommendations?.knowledge);
+                            updateRecommendationCard('cognitive-recommendations', detailData.recommendations?.cognitive);
+                            updateRecommendationCard('affective-recommendations', detailData.recommendations?.affective);
+                            updateRecommendationCard('behavioral-recommendations', detailData.recommendations?.behavioral);
+
+                        })
+                        .catch(error => {
+                            console.error('Fetch detailed data error:', error);
+                            document.getElementById('expert-diagnosis').textContent = `加载详细数据时出错: ${error.message}`;
+                            updateRecommendationCard('knowledge-recommendations', ['加载失败']);
+                            updateRecommendationCard('cognitive-recommendations', ['加载失败']);
+                            updateRecommendationCard('affective-recommendations', ['加载失败']);
+                            updateRecommendationCard('behavioral-recommendations', ['加载失败']);
+                        });
                 })
                 .catch(error => {
-                    console.error('Fetch error:', error);
-                    document.getElementById('student-details').innerHTML = `<p class="text-red-500">加载学生数据时出错: ${error.message}</p>`;
+                    console.error('Fetch basic data error:', error);
+                    document.getElementById('student-details').innerHTML = `<p class="text-red-500">加载学生基本数据时出错: ${error.message}</p>`;
+                    // 清空或显示加载失败状态给详细数据区域
+                    document.getElementById('expert-diagnosis').textContent = '加载失败';
+                    updateRecommendationCard('knowledge-recommendations', ['加载失败']);
+                    updateRecommendationCard('cognitive-recommendations', ['加载失败']);
+                    updateRecommendationCard('affective-recommendations', ['加载失败']);
+                    updateRecommendationCard('behavioral-recommendations', ['加载失败']);
                 });
         }
 
