@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import math
 from sklearn.preprocessing import MinMaxScaler
 
 def load_data(file_path):
@@ -92,8 +93,12 @@ def calculate_dimensions(df):
     # 认知维度
     cognitive_cols = [col for col in [f'ST307Q{i:02d}JA' for i in range(7, 11)] if col in df_result.columns]
     if cognitive_cols:
-        df_result['认知维度_综合得分'] = df_result[cognitive_cols].mean(axis=1) / 4.0  # 假设满分为4
-    
+        # 确保在计算均值前排除 97
+        df_cognitive = df_result[cognitive_cols].replace(97, np.nan)
+        df_result['认知维度_综合得分'] = df_cognitive.mean(axis=1) / 4.0  # 假设满分为4
+        # 如果计算结果为 NaN (例如，所有值都是 97)，则替换为 0
+        df_result['认知维度_综合得分'] = df_result['认知维度_综合得分'].fillna(0)
+
     # 情感维度
     affective_cols = [col for col in [f'ST297Q{i:02d}JA' for i in range(1, 11)] if col in df_result.columns]
     if affective_cols:
