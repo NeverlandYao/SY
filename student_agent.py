@@ -328,7 +328,7 @@ class StudentAgent:
         detail_keys = [k for k in profile.keys() if k.startswith('知识_')]
         for k in detail_keys:
             knowledge_query += f"{k}: {profile[k]:.2f}\n"
-        knowledge_query += "\\n请针对这位学生的知识维度情况提供建议。"
+        knowledge_query += "\\n请针对这位学生的知识维度情况，用2-3句话提供建议。"
 
         knowledge_response = self._consult_expert("学科教学专家", knowledge_query, available_actions=["直接回复", "咨询其他LLM", "推荐资源"])
         action = knowledge_response['action']
@@ -358,7 +358,7 @@ class StudentAgent:
         detail_keys = [k for k in profile.keys() if k.startswith('认知_')]
         for k in detail_keys:
             cognitive_query += f"{k}: {profile[k]:.2f}\n"
-        cognitive_query += "\\n请针对这位学生的认知维度情况，提供1-2条提升思维能力、学习策略和元认知能力的建议."
+        cognitive_query += "\\n请针对这位学生的认知维度情况，用2-3句话提供建议。"
 
         cognitive_recs = self._consult_expert("认知心理学家", cognitive_query)['response']
         recommendations["认知维度"] = self._parse_recommendations(cognitive_recs)
@@ -419,13 +419,154 @@ class StudentAgent:
                 recommendations["家庭支持"].append(rec)
             else:
                 recommendations["总体评估"].append(rec)
+        
+        # 将特定维度的建议列表合并为字符串
+        # 确保在返回之前处理所有相关维度
+        for dim_key in ["知识维度", "认知维度", "情感维度", "行为维度", "知识诊断", "总体评估", "学习策略", "教师支持", "家庭支持", "风险提示"]:
+            if dim_key in recommendations and recommendations[dim_key] and isinstance(recommendations[dim_key], list):
+                # 对于主要维度，如果列表不为空但解析后为空字符串（例如只有一个空元素），则设为“暂无具体建议”
+                if dim_key in ["知识维度", "认知维度", "情感维度", "行为维度"]:
+                    processed_list = [item for item in recommendations[dim_key] if item.strip()]
+                    if not processed_list:
+                        recommendations[dim_key] = "暂无具体建议。"
+                    else:
+                        recommendations[dim_key] = "\n".join(processed_list)
+                else: # 其他类别直接join
+                     recommendations[dim_key] = "\n".join(recommendations[dim_key])
+            elif dim_key in recommendations and not recommendations[dim_key]: # 如果列表为空
+                 if dim_key in ["知识维度", "认知维度", "情感维度", "行为维度"]:
+                    recommendations[dim_key] = "暂无具体建议。"
+                 else:
+                    recommendations[dim_key] = "" # 其他类别设为空字符串
+            # 如果维度键不存在于recommendations中 (例如 "知识诊断" 可能不存在)，则不进行操作或可以初始化为空字符串
+            elif dim_key not in recommendations and dim_key in ["知识维度", "认知维度", "情感维度", "行为维度"]:
+                 recommendations[dim_key] = "未能生成建议。"
+
 
         return recommendations
 
-    def generate_recommendations(self, student_id):
-        pass
+    # 确保第二个 generate_recommendations 定义被删除
+    # def generate_recommendations(self, student_id):
+    #     """使用多专家系统为学生生成个性化学习建议
 
-    def _execute_function(self, function_name, parameters):
+    #     Args:
+    #         student_id: 学生ID
+
+    #     Returns:
+    #         dict: 包含多个维度的专家建议
+    #     """
+    #     if student_id not in self.student_profiles:
+    #         self.analyze_student(student_id)
+
+    #     if student_id not in self.student_profiles:
+    #         return {"error": "无法获取学生数据"}
+
+    #     profile = self.student_profiles[student_id]
+
+    #     # 创建分维度的建议结构
+    #     recommendations = {
+    #         "总体评估": [],
+    #         "知识维度": [],
+    #         "认知维度": [],
+    #         "情感维度": [],
+    #         "行为维度": [],
+    #         "学习策略": [],
+    #         "教师支持": [],
+    #         "家庭支持": [],
+    #         "风险提示": []
+    #     }
+
+    #     if profile.get('risk_level') == "高风险":
+    #         recommendations["风险提示"].append("该学生存在较高风险，建议优先采取心理辅导和情感支持措施。")
+    #     elif profile.get('risk_level') == "中风险":
+    #         recommendations["风险提示"].append("该学生存在一定风险，需要密切关注其情绪和行为变化，并提供必要的支持。")
+
+    #     # 1. 学科教学专家提供知识维度建议，并判断是否需要进一步诊断
+    #     knowledge_query = (
+    #         f"学生ID {student_id} 的知识维度得分为 {profile['knowledge_score']:.2f}/1.0\n"
+    #         f"学生类型: {profile['student_type']}。\n"
+    #     )
+    #     detail_keys = [k for k in profile.keys() if k.startswith('知识_')]
+    #     for k in detail_keys:
+    #         knowledge_query += f"{k}: {profile[k]:.2f}\n"
+    #     knowledge_query += "\\n请针对这位学生的知识维度情况，用2-3句话提供建议。"
+
+    #     knowledge_response = self._consult_expert("学科教学专家", knowledge_query, available_actions=["直接回复", "咨询其他LLM", "推荐资源"])
+    #     action = knowledge_response['action']
+    #     response = knowledge_response['response']
+
+    #     if action == "直接回复":
+    #         recommendations["知识维度"] = self._parse_recommendations(response)
+    #     elif action == "咨询其他LLM":
+    #         if "知识诊断LLM" in response: # LLM 在回复中
+    #             diagnosis_query = f"请对学生ID {student_id} 的知识维度进行更深入的诊断分析，当前的知识维度得分为 {profile['knowledge_score']:.2f}，详细指标如下：\n"
+    #             for k in detail_keys:
+    #                 diagnosis_query += f"{k}: {profile[k]:.2f}\n"
+    #             diagnosis_response = self._consult_expert("知识诊断LLM", diagnosis_query)['response']
+    #             recommendations["知识诊断"] = self._parse_recommendations(diagnosis_response)
+    #         else:
+    #             recommendations["知识维度"].append(f"学科教学专家建议咨询其他LLM，但未指明具体模型：{response}")
+    #     elif action == "推荐资源":
+    #         recommendations["知识维度"].append(f"学科教学专家推荐资源：{response}")
+    #     else:
+    #         recommendations["知识维度"].append(response) # 默认将回复作为建议
+
+    #     # 2. 认知心理学家提供认知维度建议
+    #     cognitive_query = (
+    #         f"学生ID {student_id} 的认知维度得分为 {profile['cognitive_score']:.2f}/1.0\n"
+    #         f"学生类型: {profile['student_type']}。\n"
+    #     )
+    #     detail_keys = [k for k in profile.keys() if k.startswith('认知_')]
+    #     for k in detail_keys:
+    #         cognitive_query += f"{k}: {profile[k]:.2f}\n"
+    #     cognitive_query += "\\n请针对这位学生的认知维度情况，用2-3句话提供建议。"
+
+    #     cognitive_recs = self._consult_expert("认知心理学家", cognitive_query)['response']
+    #     recommendations["认知维度"] = self._parse_recommendations(cognitive_recs)
+
+    #     # 3. 教育心理咨询师提供情感维度建议
+    #     affective_query = (
+    #         f"学生ID {student_id} 的情感维度得分为 {profile['affective_score']:.2f}/1.0\n"
+    #         f"学生类型: {profile['student_type']}。\n"
+    #     )
+    #     detail_keys = [k for k in profile.keys() if k.startswith('情感_')]
+    #     for k in detail_keys:
+    #         affective_query += f"{k}: {profile[k]:.2f}\n"
+    #     affective_query += "\\n请针对这位学生的情感状况，提供1-2条改善学习情绪、提升动机和增强心理韧性的建议."
+    #     if profile.get('risk_level') in ["中风险", "高风险"]:
+    #         affective_query += " **请特别关注学生的情感状态和心理健康，提供具体的支持建议。**"
+
+    #     affective_recs = self._consult_expert("教育心理咨询师", affective_query)['response']
+    #     recommendations["情感维度"] = self._parse_recommendations(affective_recs)
+
+    #     # 4. 学习行为指导专家提供行为维度建议
+    #     behavioral_query = (
+    #         f"学生ID {student_id} 的行为维度得分为 {profile['behavioral_score']:.2f}/1.0\n"
+    #         f"学生类型: {profile['student_type']}。\n"
+    #     )
+    #     detail_keys = [k for k in profile.keys() if k.startswith('行为_')]
+    #     for k in detail_keys:
+    #         behavioral_query += f"{k}: {profile[k]:.2f}\n"
+    #     behavioral_query += "\\n请针对这位学生的学习行为模式，提供1-2条培养良好学习习惯、提高时间管理能力和改善学习环境的具体建议."
+
+    #     behavioral_recs = self._consult_expert("学习行为指导专家", behavioral_query)['response']
+    #     recommendations["行为维度"] = self._parse_recommendations(behavioral_recs)
+
+    #     # 5. 教育人工智能专家整合所有建议，提供系统性学习策略
+    #     integration_query = (
+    #         f"学生ID {student_id} 的完整学习画像:\\n"
+    #         f"- 学生类型: {profile['student_type']}\\n"
+    #         f"- 知识维度: {profile['knowledge_score']:.2f}\\n"
+    #         f"- 认知维度: {profile['cognitive_score']:.2f}\\n"
+    #         f"- 情感维度: {profile['affective_score']:.2f}\\n"
+    #         f"- 行为维度: {profile['behavioral_score']:.2f}\\n"
+    #         f"- 风险等级: {profile.get('risk_level', '低风险')}\\n"
+    #         f"- 风险因素: {', '.join(profile.get('risk_factors', []))}\\n\\n"
+    #         f"各维度专家已提供了针对性建议. 现在请你作为教育人工智能专家，整合这些见解,\\n"
+    #         f"设计一个系统化的学习提升方案，包括技术工具支持、教师指导建议和家庭配合策略. \\n"
+    #         f"请特别关注数字化学习资源的推荐和智能学习工具的应用.\\n"
+    #     )
+
         if function_name == "log_student_event":
             self._log_student_event(parameters.get("student_id"), parameters.get("event_type"), parameters.get("details"))
             return "事件已记录"

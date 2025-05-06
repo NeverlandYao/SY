@@ -415,6 +415,31 @@ def get_student_by_id(student_id):
         print(f"获取学生ID {student_id} 数据时发生错误: {e}")
         return jsonify({"error": "获取学生数据时发生内部错误", "details": str(e)}), 500
 
+@app.route('/api/student/<int:student_id>/plan', methods=['GET'])
+def get_student_plan(student_id):
+    """API endpoint to get personalized advice for a single student."""
+    global agent, system_ready, student_data
+
+    if not system_ready or agent is None or student_data is None:
+        return jsonify({"error": "System not ready or agent not initialized"}), 500
+
+    # 验证 student_id
+    if student_id not in student_data['student_id'].values:
+        return jsonify({"error": f"找不到学生ID {student_id}"}), 404
+
+    try:
+        # 调用 StudentAgent 生成建议
+        advice = agent.generate_recommendations(student_id)
+        if advice.get("error"):
+             return jsonify(advice), 500 # 如果agent内部出错，直接返回错误信息
+
+        return jsonify(advice)
+
+    except Exception as e:
+        print(f"获取学生计划出错: {e}")
+        traceback.print_exc()
+        return jsonify({"error": f"无法获取学生 {student_id} 的计划: {str(e)}"}), 500
+
 if __name__ == '__main__':
     # 设置 host='0.0.0.0' 以使其可在网络上访问（如果需要）
     app.run(debug=True, host='0.0.0.0', port=5010)

@@ -426,11 +426,52 @@
                                 expertDiagnosisElement.textContent = '暂无诊断信息';
                             }
 
-                            // 更新学业规划建议卡片
-                            updateRecommendationCard('knowledge-recommendations', detailData.recommendations?.knowledge);
-                            updateRecommendationCard('cognitive-recommendations', detailData.recommendations?.cognitive);
-                            updateRecommendationCard('affective-recommendations', detailData.recommendations?.affective);
-                            updateRecommendationCard('behavioral-recommendations', detailData.recommendations?.behavioral);
+                            // 更新学业规划建议卡片 (来自 /details)
+                            // 这些是旧的，我们现在将从 /plan 获取
+                            // updateRecommendationCard('knowledge-recommendations', detailData.recommendations?.knowledge);
+                            // updateRecommendationCard('cognitive-recommendations', detailData.recommendations?.cognitive);
+                            // updateRecommendationCard('affective-recommendations', detailData.recommendations?.affective);
+                            // updateRecommendationCard('behavioral-recommendations', detailData.recommendations?.behavioral);
+
+
+                            // 3. Fetch student plan data (newly added)
+                            fetch(`http://127.0.0.1:5010/api/student/${String(studentId)}/plan`)
+                                .then(response => {
+                                    if (!response.ok) {
+                                        throw new Error(`HTTP error! status: ${response.status}`);
+                                    }
+                                    return response.json();
+                                })
+                                .then(planData => {
+                                    console.log("获取了学生计划数据:", planData);
+                                    if (!planData || planData.error) {
+                                        console.error("Error fetching student plan data:", planData ? planData.error : "No data received");
+                                        updateRecommendationCard('knowledge-recommendations', ['加载计划失败']);
+                                        updateRecommendationCard('cognitive-recommendations', ['加载计划失败']);
+                                        updateRecommendationCard('affective-recommendations', ['加载计划失败']);
+                                        updateRecommendationCard('behavioral-recommendations', ['加载计划失败']);
+                                        return;
+                                    }
+
+                                    // 更新学业规划建议卡片 (来自 /plan)
+                                    // 确保在调用 split 之前检查类型和内容
+                                    const knowledgeRecs = typeof planData["知识维度"] === 'string' && planData["知识维度"].trim().length > 0 ? planData["知识维度"].split('\n') : ['暂无建议'];
+                                    const cognitiveRecs = typeof planData["认知维度"] === 'string' && planData["认知维度"].trim().length > 0 ? planData["认知维度"].split('\n') : ['暂无建议'];
+                                    const affectiveRecs = typeof planData["情感维度"] === 'string' && planData["情感维度"].trim().length > 0 ? planData["情感维度"].split('\n') : ['暂无建议'];
+                                    const behavioralRecs = typeof planData["行为维度"] === 'string' && planData["行为维度"].trim().length > 0 ? planData["行为维度"].split('\n') : ['暂无建议'];
+
+                                    updateRecommendationCard('knowledge-recommendations', knowledgeRecs);
+                                    updateRecommendationCard('cognitive-recommendations', cognitiveRecs);
+                                    updateRecommendationCard('affective-recommendations', affectiveRecs);
+                                    updateRecommendationCard('behavioral-recommendations', behavioralRecs);
+                                })
+                                .catch(error => {
+                                    console.error('Fetch plan data error:', error);
+                                    updateRecommendationCard('knowledge-recommendations', [`加载计划时出错: ${error.message}`]);
+                                    updateRecommendationCard('cognitive-recommendations', [`加载计划时出错: ${error.message}`]);
+                                    updateRecommendationCard('affective-recommendations', [`加载计划时出错: ${error.message}`]);
+                                    updateRecommendationCard('behavioral-recommendations', [`加载计划时出错: ${error.message}`]);
+                                });
 
                         })
                         .catch(error => {
