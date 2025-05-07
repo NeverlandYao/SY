@@ -41,23 +41,23 @@ class StudentAgent:
             },
             "学科教学专家": {
                 "role": "你是一位资深的学科教学专家...",
-                "responsibility": "根据学生在知识维度的表现，提供针对性的学科学习建议和资源推荐"
+                "responsibility": "根据学生在知识维度的表现，提供2-3条针对性的学科学习建议和资源推荐"
             },
             "认知心理学家": {
                 "role": "你是一位认知心理学家...",
-                "responsibility": "分析学生的认知特点，提供认知能力培养和思维方式优化的专业建议"
+                "responsibility": "分析学生的认知特点，提供2-3条认知能力培养和思维方式优化的专业建议"
             },
             "教育心理咨询师": {
                 "role": "你是一位专业的教育心理咨询师...",
-                "responsibility": "关注学生的情感状态，提供情绪管理、压力应对和心理健康建议"
+                "responsibility": "关注学生的情感状态，提供2-3条情绪管理、压力应对和心理健康建议"
             },
             "学习行为指导专家": {
                 "role": "你是一位学习行为指导专家...",
-                "responsibility": "根据学生的行为模式，提供习惯培养、行为改变和学习环境优化的具体策略"
+                "responsibility": "根据学生的行为模式，提供2-3条习惯培养、行为改变和学习环境优化的具体策略"
             },
             "教育人工智能专家": {
                 "role": "你是一位教育人工智能专家...",
-                "responsibility": "整合各专家的建议，设计系统性的智能干预方案，并推荐适合的数字化学习资源和工具"
+                "responsibility": "整合各专家的建议，设计2-3条系统性的智能干预方案，并推荐适合的数字化学习资源和工具"
             },
             "风险告警智能体": {
                 "role": "你是一个风险告警系统，负责根据学生的风险评估结果发送警报。",
@@ -98,7 +98,9 @@ class StudentAgent:
             {
                 'role': 'system',
                 'content': f"{expert['role']}\n\n你的职责：{expert['responsibility']}\n\n"
-                           f"请提供专业、深入、具体且可操作的建议。请基于教育学、心理学等相关理论进行分析, 同时考虑实际应用价值。回答应结构清晰，语言专业但易于理解。\n\n"
+                           f"请提供专业、深入、具体且可操作的建议，并以JSON格式返回。请基于教育学、心理学等相关理论进行分析, 同时考虑实际应用价值。回答应结构清晰，语言专业但易于理解。\n\n"
+                           f"JSON 格式示例: \n"
+                           f'{{"suggestions": ["建议1", "建议2", "建议3"]}}\n'
             }
         ]
 
@@ -166,22 +168,34 @@ class StudentAgent:
         Returns:
             list: 建议列表
         """
-        # 简单的解析逻辑，将文本按条目分割
-        if not recommendations_text:
-            return []
+        try:
+            # 尝试解析 JSON 格式的建议
+            recommendations = json.loads(recommendations_text)
+            if isinstance(recommendations, dict) and "suggestions" in recommendations:
+                return recommendations["suggestions"]
+            elif isinstance(recommendations, list):
+                return recommendations
+            else:
+                print("无法解析JSON格式，返回空列表")
+                return []
+        except json.JSONDecodeError:
+            print("JSON解码错误，尝试文本分割")
+            # 简单的解析逻辑，将文本按条目分割
+            if not recommendations_text:
+                return []
 
-        # 替换常见的编号模式
-        for pattern in ["1. ", "2. ", "3. ", "4. ", "5. ", "1）", "2）", "3）", "4）", "5）", "①", "②", "③", "④", "⑤"]:
-            recommendations_text = recommendations_text.replace(pattern, "|||")
+            # 替换常见的编号模式
+            for pattern in ["1. ", "2. ", "3. ", "4. ", "5. ", "1）", "2）", "3）", "4）", "5）", "①", "②", "③", "④", "⑤"]:
+                recommendations_text = recommendations_text.replace(pattern, "|||")
 
-        # 分割并清理
-        items = [item.strip() for item in recommendations_text.split("|||") if item.strip()]
+            # 分割并清理
+            items = [item.strip() for item in recommendations_text.split("|||") if item.strip()]
 
-        # 移除可能的标题行
-        if items and any(keyword in items[0].lower() for keyword in ["建议", "推荐", "总结", "分析", "策略"]):
-            items = items[1:]
+            # 移除可能的标题行
+            if items and any(keyword in items[0].lower() for keyword in ["建议", "推荐", "总结", "分析", "策略"]):
+                items = items[1:]
 
-        return items
+            return items
 
     def analyze_student(self, student_id):
         """分析特定学生的数据并生成个性化评估"""
@@ -344,7 +358,7 @@ class StudentAgent:
                 diagnosis_response = self._consult_expert("知识诊断LLM", diagnosis_query)['response']
                 recommendations["知识诊断"] = self._parse_recommendations(diagnosis_response)
             else:
-                recommendations["知识维度"].append(f"学科教学专家建议咨询其他LLM，但未指明具体模型：{response}")
+                recommendations["知识维度"].append(f"学科教学专家建议咨询其他LLM：{response}")
         elif action == "推荐资源":
             recommendations["知识维度"].append(f"学科教学专家推荐资源：{response}")
         else:
@@ -360,8 +374,8 @@ class StudentAgent:
             cognitive_query += f"{k}: {profile[k]:.2f}\n"
         cognitive_query += "\\n请针对这位学生的认知维度情况，用2-3句话提供建议。"
 
-        cognitive_recs = self._consult_expert("认知心理学家", cognitive_query)['response']
-        recommendations["认知维度"] = self._parse_recommendations(cognitive_recs)
+        cognitive_response = self._consult_expert("认知心理学家", cognitive_query)
+        recommendations["认知维度"] = self._parse_recommendations(cognitive_response['response'])
 
         # 3. 教育心理咨询师提供情感维度建议
         affective_query = (
@@ -375,8 +389,8 @@ class StudentAgent:
         if profile.get('risk_level') in ["中风险", "高风险"]:
             affective_query += " **请特别关注学生的情感状态和心理健康，提供具体的支持建议。**"
 
-        affective_recs = self._consult_expert("教育心理咨询师", affective_query)['response']
-        recommendations["情感维度"] = self._parse_recommendations(affective_recs)
+        affective_response = self._consult_expert("教育心理咨询师", affective_query)
+        recommendations["情感维度"] = self._parse_recommendations(affective_response['response'])
 
         # 4. 学习行为指导专家提供行为维度建议
         behavioral_query = (
@@ -388,8 +402,8 @@ class StudentAgent:
             behavioral_query += f"{k}: {profile[k]:.2f}\n"
         behavioral_query += "\\n请针对这位学生的学习行为模式，提供1-2条培养良好学习习惯、提高时间管理能力和改善学习环境的具体建议."
 
-        behavioral_recs = self._consult_expert("学习行为指导专家", behavioral_query)['response']
-        recommendations["行为维度"] = self._parse_recommendations(behavioral_recs)
+        behavioral_response = self._consult_expert("学习行为指导专家", behavioral_query)
+        recommendations["行为维度"] = self._parse_recommendations(behavioral_response['response'])
 
         # 5. 教育人工智能专家整合所有建议，提供系统性学习策略
         integration_query = (
