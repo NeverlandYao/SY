@@ -430,6 +430,7 @@ def get_student_plan(student_id):
     try:
         # 调用 StudentAgent 生成建议
         advice = agent.generate_recommendations(student_id)
+        # print(advice)
         if advice.get("error"):
              return jsonify(advice), 500 # 如果agent内部出错，直接返回错误信息
 

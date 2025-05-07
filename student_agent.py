@@ -3,6 +3,7 @@ import numpy as np
 from openai import OpenAI
 import json
 import time
+import re
 from config import MODELSCOPE_CONFIG  # 导入配置
 
 
@@ -98,9 +99,7 @@ class StudentAgent:
             {
                 'role': 'system',
                 'content': f"{expert['role']}\n\n你的职责：{expert['responsibility']}\n\n"
-                           f"请提供专业、深入、具体且可操作的建议，并以JSON格式返回。请基于教育学、心理学等相关理论进行分析, 同时考虑实际应用价值。回答应结构清晰，语言专业但易于理解。\n\n"
-                           f"JSON 格式示例: \n"
-                           f'{{"suggestions": ["建议1", "建议2", "建议3"]}}\n'
+                           f"请提供专业、深入、具体且可操作的建议。请基于教育学、心理学等相关理论进行分析, 同时考虑实际应用价值。回答应结构清晰，语言专业但易于理解。\n\n"
             }
         ]
 
@@ -139,21 +138,31 @@ class StudentAgent:
                     content = chunk.choices[0].delta.content or ""
                     if content:
                         if first_line and available_actions:
-                            # 尝试解析第一行中的 action
+                            # Attempt to parse the action from the first line
                             for act in available_actions:
                                 if content.strip().startswith(act):
                                     selected_action = act
-                                    content = content.replace(act, "").strip() # 去掉 action 前缀和可能的换行符
+                                    # Remove the identified action from the content chunk
+                                    content = content.replace(act, "", 1).strip()
                                     break
                             first_line = False
 
                         llm_response += content
-                        print(content, end='', flush=True)
+                        # print(content, end='', flush=True)
                 except Exception as e:
                     continue
 
             print(f"\n{expert_name}已完成分析")
-            return {"action": selected_action, "response": llm_response.strip()}
+
+            # Ensure the selected action is removed from the beginning of the final response
+            final_response = llm_response.strip()
+            if selected_action and final_response.startswith(selected_action):
+                 # Use regex to handle potential whitespace or punctuation after the action
+                 pattern = r"^" + re.escape(selected_action) + r"[\s\W]*"
+                 final_response = re.sub(pattern, "", final_response).strip()
+
+
+            return {"action": selected_action, "response": final_response}
 
         except Exception as e:
             print(f"咨询专家时出错: {e}")
@@ -168,34 +177,25 @@ class StudentAgent:
         Returns:
             list: 建议列表
         """
-        try:
-            # 尝试解析 JSON 格式的建议
-            recommendations = json.loads(recommendations_text)
-            if isinstance(recommendations, dict) and "suggestions" in recommendations:
-                return recommendations["suggestions"]
-            elif isinstance(recommendations, list):
-                return recommendations
-            else:
-                print("无法解析JSON格式，返回空列表")
-                return []
-        except json.JSONDecodeError:
-            print("JSON解码错误，尝试文本分割")
-            # 简单的解析逻辑，将文本按条目分割
-            if not recommendations_text:
-                return []
+        # 简单的解析逻辑，将文本按条目分割
+        if not recommendations_text:
+            return []
 
-            # 替换常见的编号模式
-            for pattern in ["1. ", "2. ", "3. ", "4. ", "5. ", "1）", "2）", "3）", "4）", "5）", "①", "②", "③", "④", "⑤"]:
-                recommendations_text = recommendations_text.replace(pattern, "|||")
+        # 替换常见的编号模式
+        for pattern in ["1. ", "2. ", "3. ", "4. ", "5. ", "1）", "2）", "3）", "4）", "5）", "①", "②", "③", "④", "⑤"]:
+            recommendations_text = recommendations_text.replace(pattern, "|||")
 
-            # 分割并清理
-            items = [item.strip() for item in recommendations_text.split("|||") if item.strip()]
+        # 分割并清理
+        items = [item.strip() for item in recommendations_text.split("|||") if item.strip()]
 
-            # 移除可能的标题行
-            if items and any(keyword in items[0].lower() for keyword in ["建议", "推荐", "总结", "分析", "策略"]):
-                items = items[1:]
+        # 移除可能的标题行
+        if items and any(keyword in items[0].lower() for keyword in ["直接回复","建议", "推荐", "总结", "分析", "策略"]):
+            items = items[1:]
 
-            return items
+        # 进一步清理空行或只有空白字符的条目
+        items = [item for item in items if item and item.strip()]
+
+        return items
 
     def analyze_student(self, student_id):
         """分析特定学生的数据并生成个性化评估"""
@@ -318,21 +318,12 @@ class StudentAgent:
 
         # 创建分维度的建议结构
         recommendations = {
-            "总体评估": [],
             "知识维度": [],
             "认知维度": [],
             "情感维度": [],
             "行为维度": [],
-            "学习策略": [],
-            "教师支持": [],
-            "家庭支持": [],
-            "风险提示": []
+            "知识诊断": [] # Keep knowledge diagnosis if needed
         }
-
-        if profile.get('risk_level') == "高风险":
-            recommendations["风险提示"].append("该学生存在较高风险，建议优先采取心理辅导和情感支持措施。")
-        elif profile.get('risk_level') == "中风险":
-            recommendations["风险提示"].append("该学生存在一定风险，需要密切关注其情绪和行为变化，并提供必要的支持。")
 
         # 1. 学科教学专家提供知识维度建议，并判断是否需要进一步诊断
         knowledge_query = (
@@ -372,10 +363,12 @@ class StudentAgent:
         detail_keys = [k for k in profile.keys() if k.startswith('认知_')]
         for k in detail_keys:
             cognitive_query += f"{k}: {profile[k]:.2f}\n"
-        cognitive_query += "\\n请针对这位学生的认知维度情况，用2-3句话提供建议。"
+        cognitive_query += "\\n请针对这位学生的认知维度情况，用2-3句话提供建议，仅仅提供建议即可。"
 
         cognitive_response = self._consult_expert("认知心理学家", cognitive_query)
-        recommendations["认知维度"] = self._parse_recommendations(cognitive_response['response'])
+        print(cognitive_response)
+        # recommendations["认知维度"] = self._parse_recommendations(cognitive_response['response'])
+        recommendations["认知维度"] = cognitive_response['response']
 
         # 3. 教育心理咨询师提供情感维度建议
         affective_query = (
@@ -385,12 +378,14 @@ class StudentAgent:
         detail_keys = [k for k in profile.keys() if k.startswith('情感_')]
         for k in detail_keys:
             affective_query += f"{k}: {profile[k]:.2f}\n"
-        affective_query += "\\n请针对这位学生的情感状况，提供1-2条改善学习情绪、提升动机和增强心理韧性的建议."
+        affective_query += "\\n请针对这位学生的情感状况，提供1-2条改善学习情绪、提升动机和增强心理韧性的建议，仅仅提供建议即可."
         if profile.get('risk_level') in ["中风险", "高风险"]:
             affective_query += " **请特别关注学生的情感状态和心理健康，提供具体的支持建议。**"
 
         affective_response = self._consult_expert("教育心理咨询师", affective_query)
-        recommendations["情感维度"] = self._parse_recommendations(affective_response['response'])
+        print(affective_response)
+        # recommendations["情感维度"] = self._parse_recommendations(affective_response['response'])
+        recommendations["情感维度"] = affective_response['response']
 
         # 4. 学习行为指导专家提供行为维度建议
         behavioral_query = (
@@ -400,43 +395,17 @@ class StudentAgent:
         detail_keys = [k for k in profile.keys() if k.startswith('行为_')]
         for k in detail_keys:
             behavioral_query += f"{k}: {profile[k]:.2f}\n"
-        behavioral_query += "\\n请针对这位学生的学习行为模式，提供1-2条培养良好学习习惯、提高时间管理能力和改善学习环境的具体建议."
+        behavioral_query += "\\n请针对这位学生的学习行为模式，提供1-2条培养良好学习习惯、提高时间管理能力和改善学习环境的具体建议，仅仅提供建议即可."
 
         behavioral_response = self._consult_expert("学习行为指导专家", behavioral_query)
-        recommendations["行为维度"] = self._parse_recommendations(behavioral_response['response'])
+        print(behavioral_response)
+        # recommendations["行为维度"] = self._parse_recommendations(behavioral_response['response'])
+        recommendations["行为维度"] = behavioral_response['response']
 
-        # 5. 教育人工智能专家整合所有建议，提供系统性学习策略
-        integration_query = (
-            f"学生ID {student_id} 的完整学习画像:\\n"
-            f"- 学生类型: {profile['student_type']}\\n"
-            f"- 知识维度: {profile['knowledge_score']:.2f}\\n"
-            f"- 认知维度: {profile['cognitive_score']:.2f}\\n"
-            f"- 情感维度: {profile['affective_score']:.2f}\\n"
-            f"- 行为维度: {profile['behavioral_score']:.2f}\\n"
-            f"- 风险等级: {profile.get('risk_level', '低风险')}\\n"
-            f"- 风险因素: {', '.join(profile.get('risk_factors', []))}\\n\\n"
-            f"各维度专家已提供了针对性建议. 现在请你作为教育人工智能专家，整合这些见解,\\n"
-            f"设计一个系统化的学习提升方案，包括技术工具支持、教师指导建议和家庭配合策略. \\n"
-            f"请特别关注数字化学习资源的推荐和智能学习工具的应用.\\n"
-        )
-
-        ai_recs = self._consult_expert("教育人工智能专家", integration_query)['response']
-
-        # 解析AI专家的建议到不同类别
-        ai_parsed = self._parse_recommendations(ai_recs)
-        for rec in ai_parsed:
-            if "工具" in rec or "软件" in rec or "资源" in rec or "技术" in rec:
-                recommendations["学习策略"].append(rec)
-            elif "教师" in rec or "老师" in rec or "课堂" in rec or "指导" in rec:
-                recommendations["教师支持"].append(rec)
-            elif "家长" in rec or "家庭" in rec or "父母" in rec:
-                recommendations["家庭支持"].append(rec)
-            else:
-                recommendations["总体评估"].append(rec)
         
         # 将特定维度的建议列表合并为字符串
         # 确保在返回之前处理所有相关维度
-        for dim_key in ["知识维度", "认知维度", "情感维度", "行为维度", "知识诊断", "总体评估", "学习策略", "教师支持", "家庭支持", "风险提示"]:
+        for dim_key in ["知识维度", "认知维度", "情感维度", "行为维度", "知识诊断"]: # Updated list of dimensions
             if dim_key in recommendations and recommendations[dim_key] and isinstance(recommendations[dim_key], list):
                 # 对于主要维度，如果列表不为空但解析后为空字符串（例如只有一个空元素），则设为“暂无具体建议”
                 if dim_key in ["知识维度", "认知维度", "情感维度", "行为维度"]:
@@ -458,128 +427,6 @@ class StudentAgent:
 
 
         return recommendations
-
-    # 确保第二个 generate_recommendations 定义被删除
-    # def generate_recommendations(self, student_id):
-    #     """使用多专家系统为学生生成个性化学习建议
-
-    #     Args:
-    #         student_id: 学生ID
-
-    #     Returns:
-    #         dict: 包含多个维度的专家建议
-    #     """
-    #     if student_id not in self.student_profiles:
-    #         self.analyze_student(student_id)
-
-    #     if student_id not in self.student_profiles:
-    #         return {"error": "无法获取学生数据"}
-
-    #     profile = self.student_profiles[student_id]
-
-    #     # 创建分维度的建议结构
-    #     recommendations = {
-    #         "总体评估": [],
-    #         "知识维度": [],
-    #         "认知维度": [],
-    #         "情感维度": [],
-    #         "行为维度": [],
-    #         "学习策略": [],
-    #         "教师支持": [],
-    #         "家庭支持": [],
-    #         "风险提示": []
-    #     }
-
-    #     if profile.get('risk_level') == "高风险":
-    #         recommendations["风险提示"].append("该学生存在较高风险，建议优先采取心理辅导和情感支持措施。")
-    #     elif profile.get('risk_level') == "中风险":
-    #         recommendations["风险提示"].append("该学生存在一定风险，需要密切关注其情绪和行为变化，并提供必要的支持。")
-
-    #     # 1. 学科教学专家提供知识维度建议，并判断是否需要进一步诊断
-    #     knowledge_query = (
-    #         f"学生ID {student_id} 的知识维度得分为 {profile['knowledge_score']:.2f}/1.0\n"
-    #         f"学生类型: {profile['student_type']}。\n"
-    #     )
-    #     detail_keys = [k for k in profile.keys() if k.startswith('知识_')]
-    #     for k in detail_keys:
-    #         knowledge_query += f"{k}: {profile[k]:.2f}\n"
-    #     knowledge_query += "\\n请针对这位学生的知识维度情况，用2-3句话提供建议。"
-
-    #     knowledge_response = self._consult_expert("学科教学专家", knowledge_query, available_actions=["直接回复", "咨询其他LLM", "推荐资源"])
-    #     action = knowledge_response['action']
-    #     response = knowledge_response['response']
-
-    #     if action == "直接回复":
-    #         recommendations["知识维度"] = self._parse_recommendations(response)
-    #     elif action == "咨询其他LLM":
-    #         if "知识诊断LLM" in response: # LLM 在回复中
-    #             diagnosis_query = f"请对学生ID {student_id} 的知识维度进行更深入的诊断分析，当前的知识维度得分为 {profile['knowledge_score']:.2f}，详细指标如下：\n"
-    #             for k in detail_keys:
-    #                 diagnosis_query += f"{k}: {profile[k]:.2f}\n"
-    #             diagnosis_response = self._consult_expert("知识诊断LLM", diagnosis_query)['response']
-    #             recommendations["知识诊断"] = self._parse_recommendations(diagnosis_response)
-    #         else:
-    #             recommendations["知识维度"].append(f"学科教学专家建议咨询其他LLM，但未指明具体模型：{response}")
-    #     elif action == "推荐资源":
-    #         recommendations["知识维度"].append(f"学科教学专家推荐资源：{response}")
-    #     else:
-    #         recommendations["知识维度"].append(response) # 默认将回复作为建议
-
-    #     # 2. 认知心理学家提供认知维度建议
-    #     cognitive_query = (
-    #         f"学生ID {student_id} 的认知维度得分为 {profile['cognitive_score']:.2f}/1.0\n"
-    #         f"学生类型: {profile['student_type']}。\n"
-    #     )
-    #     detail_keys = [k for k in profile.keys() if k.startswith('认知_')]
-    #     for k in detail_keys:
-    #         cognitive_query += f"{k}: {profile[k]:.2f}\n"
-    #     cognitive_query += "\\n请针对这位学生的认知维度情况，用2-3句话提供建议。"
-
-    #     cognitive_recs = self._consult_expert("认知心理学家", cognitive_query)['response']
-    #     recommendations["认知维度"] = self._parse_recommendations(cognitive_recs)
-
-    #     # 3. 教育心理咨询师提供情感维度建议
-    #     affective_query = (
-    #         f"学生ID {student_id} 的情感维度得分为 {profile['affective_score']:.2f}/1.0\n"
-    #         f"学生类型: {profile['student_type']}。\n"
-    #     )
-    #     detail_keys = [k for k in profile.keys() if k.startswith('情感_')]
-    #     for k in detail_keys:
-    #         affective_query += f"{k}: {profile[k]:.2f}\n"
-    #     affective_query += "\\n请针对这位学生的情感状况，提供1-2条改善学习情绪、提升动机和增强心理韧性的建议."
-    #     if profile.get('risk_level') in ["中风险", "高风险"]:
-    #         affective_query += " **请特别关注学生的情感状态和心理健康，提供具体的支持建议。**"
-
-    #     affective_recs = self._consult_expert("教育心理咨询师", affective_query)['response']
-    #     recommendations["情感维度"] = self._parse_recommendations(affective_recs)
-
-    #     # 4. 学习行为指导专家提供行为维度建议
-    #     behavioral_query = (
-    #         f"学生ID {student_id} 的行为维度得分为 {profile['behavioral_score']:.2f}/1.0\n"
-    #         f"学生类型: {profile['student_type']}。\n"
-    #     )
-    #     detail_keys = [k for k in profile.keys() if k.startswith('行为_')]
-    #     for k in detail_keys:
-    #         behavioral_query += f"{k}: {profile[k]:.2f}\n"
-    #     behavioral_query += "\\n请针对这位学生的学习行为模式，提供1-2条培养良好学习习惯、提高时间管理能力和改善学习环境的具体建议."
-
-    #     behavioral_recs = self._consult_expert("学习行为指导专家", behavioral_query)['response']
-    #     recommendations["行为维度"] = self._parse_recommendations(behavioral_recs)
-
-    #     # 5. 教育人工智能专家整合所有建议，提供系统性学习策略
-    #     integration_query = (
-    #         f"学生ID {student_id} 的完整学习画像:\\n"
-    #         f"- 学生类型: {profile['student_type']}\\n"
-    #         f"- 知识维度: {profile['knowledge_score']:.2f}\\n"
-    #         f"- 认知维度: {profile['cognitive_score']:.2f}\\n"
-    #         f"- 情感维度: {profile['affective_score']:.2f}\\n"
-    #         f"- 行为维度: {profile['behavioral_score']:.2f}\\n"
-    #         f"- 风险等级: {profile.get('risk_level', '低风险')}\\n"
-    #         f"- 风险因素: {', '.join(profile.get('risk_factors', []))}\\n\\n"
-    #         f"各维度专家已提供了针对性建议. 现在请你作为教育人工智能专家，整合这些见解,\\n"
-    #         f"设计一个系统化的学习提升方案，包括技术工具支持、教师指导建议和家庭配合策略. \\n"
-    #         f"请特别关注数字化学习资源的推荐和智能学习工具的应用.\\n"
-    #     )
 
         if function_name == "log_student_event":
             self._log_student_event(parameters.get("student_id"), parameters.get("event_type"), parameters.get("details"))

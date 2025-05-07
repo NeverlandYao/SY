@@ -454,6 +454,13 @@
                                         return;
                                     }
 
+                                    // Replace double newlines with single newline in planData values
+                                    for (const key in planData) {
+                                        if (typeof planData[key] === 'string') {
+                                            planData[key] = planData[key].replace(/\n\n/g, '\n');
+                                        }
+                                    }
+
                                     // 更新学业规划建议卡片 (来自 /plan)
                                     // 确保在调用 split 之前检查类型和内容
                                     const knowledgeRecs = typeof planData["知识维度"] === 'string' && planData["知识维度"].trim().length > 0 ? planData["知识维度"].split('\n') : ['暂无建议'];
@@ -509,7 +516,7 @@
                     li.className = 'flex items-start';
                     li.innerHTML = `
                         <i class="fas fa-check-circle mt-0.5 mr-1.5 text-green-500"></i>
-                        <span>${rec}</span>
+                        <span>${marked.parse(rec)}</span>
                     `;
                     ulElement.appendChild(li);
                 });
