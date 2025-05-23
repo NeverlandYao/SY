@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, jsonify
 import pandas as pd
 import json
 import os
+import db_utils  # 导入数据库工具
 import student_agent as sa
 import data_processing as dp
 # 移除未使用的绘图导入: matplotlib, seaborn, plotly
@@ -12,6 +13,7 @@ import time
 import traceback
 from datetime import datetime # 添加于页脚年份
 
+import db_utils  # 导入数据库工具
 import os
 app = Flask(__name__, template_folder='template')
 
@@ -140,6 +142,10 @@ def process_student_data(student_data):
 def initialize_system():
     global student_data, agent, system_ready, data_loader
 
+    db_utils.create_database()
+    db_utils.create_students_table()
+    db_utils.create_recommendations_table()
+
     try:
         data_file_path = 'student_profiles.csv'
         excel_file_path = 'Model_py.xlsx'
@@ -195,6 +201,9 @@ def initialize_system():
         return False
 
 # 启动时初始化
+db_utils.create_database()
+db_utils.create_students_table()
+db_utils.create_recommendations_table()
 initialize_system()
 
 # --- 路由 ---

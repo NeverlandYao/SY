@@ -73,7 +73,6 @@ class StudentAgent:
         # 可用的 Action 类型
         self.AVAILABLE_ACTIONS = ["直接回复", "咨询其他LLM", "发送告警", "记录事件", "推荐资源", "执行特定函数"]
 
-        # ... (其他初始化代码) ...
         print("学生智能代理系统初始化完成")
 
     def _consult_expert(self, expert_name, query, available_actions=None, model="Qwen/Qwen2.5-7B-Instruct-1M"):
@@ -293,7 +292,6 @@ class StudentAgent:
             alert_response = self._consult_expert("风险告警智能体", alert_query, available_actions=["发送告警"])
             if alert_response['action'] == "发送告警":
                 print(f"系统已发送告警：{alert_response['response']}")
-                # 这里可以添加实际发送告警的逻辑，例如调用邮件或消息服务
             else:
                 print(f"风险告警智能体未能发送告警：{alert_response['response']}")
 
@@ -322,7 +320,7 @@ class StudentAgent:
             "认知维度": [],
             "情感维度": [],
             "行为维度": [],
-            "知识诊断": [] # Keep knowledge diagnosis if needed
+            "知识诊断": []
         }
 
         # 1. 学科教学专家提供知识维度建议，并判断是否需要进一步诊断

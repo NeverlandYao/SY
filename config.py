@@ -26,7 +26,7 @@ LABEL_MAP = {
 # 智能体配置
 MODELSCOPE_CONFIG = {
     'base_url': 'https://api-inference.modelscope.cn/v1/',
-    'api_key': '',
+    'api_key': '8a962720-9cb7-45d3-af59-310e333b97a5',
     'model_id': 'Qwen/Qwen2.5-7B-Instruct-1M'
 }
 
@@ -35,4 +35,11 @@ VISUAL_STYLE = {
     'radar_colors': ['#1f77b4', '#ff7f0e'],
     'font_sizes': {'title': 14, 'labels': 10},
     'dimension_order': ['知识', '认知', '情感', '行为', '创新', '协作']
+}
+
+# 数据库配置
+db_config = {
+    'host': 'localhost',
+    'user': 'root',
+    'password': 'zhangyao0420'
 }
