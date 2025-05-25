@@ -77,13 +77,11 @@ class StudentAgent:
 
     def _consult_expert(self, expert_name, query, available_actions=None, model="Qwen/Qwen2.5-7B-Instruct-1M"):
         """咨询特定领域的专家智能体，并允许选择执行不同的 action
-
         Args:
             expert_name: 专家名称
             query: 查询内容
             available_actions: 可供选择的动作列表，例如 ["直接回复", "咨询其他LLM"]
             model: 使用的模型ID
-
         Returns:
             dict: 包含选择的 action 和专家的意见
         """
@@ -137,11 +135,27 @@ class StudentAgent:
                     content = chunk.choices[0].delta.content or ""
                     if content:
                         if first_line and available_actions:
-                            # Attempt to parse the action from the first line
+        try:
+            response = self.client.chat.completions.create(
+                model=model,
+                messages=messages,
+                stream=True
+            )
+
+            selected_action = None
+            llm_response = ""
+            first_line = True
+
+            for chunk in response:
+                try:
+                    content = chunk.choices[0].delta.content or ""
+                    if content:
+                        if first_line and available_actions:
+                            # 尝试从第一行解析 action
                             for act in available_actions:
                                 if content.strip().startswith(act):
                                     selected_action = act
-                                    # Remove the identified action from the content chunk
+                                    # 移除内容块中已识别的 action
                                     content = content.replace(act, "", 1).strip()
                                     break
                             first_line = False
@@ -153,13 +167,19 @@ class StudentAgent:
 
             print(f"\n{expert_name}已完成分析")
 
-            # Ensure the selected action is removed from the beginning of the final response
+            # 确保从最终响应的开头移除所选的 action
             final_response = llm_response.strip()
             if selected_action and final_response.startswith(selected_action):
                  # Use regex to handle potential whitespace or punctuation after the action
                  pattern = r"^" + re.escape(selected_action) + r"[\s\W]*"
                  final_response = re.sub(pattern, "", final_response).strip()
 
+
+            return {"action": selected_action, "response": final_response}
+
+        except Exception as e:
+            print(f"咨询专家时出错: {e}")
+            return {"action": None, "response": f"咨询{expert_name}失败: {str(e)}"}
 
             return {"action": selected_action, "response": final_response}
 

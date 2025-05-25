@@ -11,9 +11,9 @@ def create_database():
         )
         mycursor = mydb.cursor()
         mycursor.execute("CREATE DATABASE IF NOT EXISTS mydatabase")
-        print("Database created successfully")
+        print("数据库创建成功")
     except mysql.connector.Error as err:
-        print(f"Error creating database: {err}")
+        print(f"创建数据库出错: {err}")
 
 def create_students_table():
     try:
@@ -51,9 +51,9 @@ def create_students_table():
 
         mycursor.execute(create_table_statement)
         mydb.commit()
-        print("Students table created successfully")
+        print("学生表创建成功")
     except mysql.connector.Error as err:
-        print(f"Error creating students table: {err}")
+        print(f"创建学生表出错: {err}")
 
 def create_recommendations_table():
     try:
@@ -77,9 +77,9 @@ def create_recommendations_table():
 
         mycursor.execute(create_table_statement)
         mydb.commit()
-        print("Recommendations table created successfully")
+        print("推荐表创建成功")
     except mysql.connector.Error as err:
-        print(f"Error creating recommendations table: {err}")
+        print(f"创建推荐表出错: {err}")
 
 def insert_student_data(student_data):
     try:
@@ -115,9 +115,9 @@ def insert_student_data(student_data):
 
         mycursor.execute(insert_statement, values)
         mydb.commit()
-        print(f"Student data inserted successfully for student ID: {student_data['student_id']}")
+        print(f"学生数据插入成功，学生ID: {student_data['student_id']}")
     except mysql.connector.Error as err:
-        print(f"Error inserting student data: {err}")
+        print(f"插入学生数据出错: {err}")
 
 def insert_recommendation_data(student_id, dimension, recommendation):
     try:
@@ -138,9 +138,9 @@ def insert_recommendation_data(student_id, dimension, recommendation):
 
         mycursor.execute(insert_statement, values)
         mydb.commit()
-        print(f"Recommendation inserted successfully for student ID: {student_id}, dimension: {dimension}")
+        print(f"推荐数据插入成功，学生ID: {student_id}, 维度: {dimension}")
     except mysql.connector.Error as err:
-        print(f"Error inserting recommendation data: {err}")
+        print(f"插入推荐数据出错: {err}")
 
 def import_excel_data(file_path, table_name):
     try:
@@ -154,7 +154,7 @@ def import_excel_data(file_path, table_name):
 
         df = pd.read_excel(file_path)
 
-        # Determine column types from DataFrame
+        # 从 DataFrame 确定列类型
         column_types = {}
         for col in df.columns:
             if pd.api.types.is_integer_dtype(df[col]):
@@ -164,15 +164,15 @@ def import_excel_data(file_path, table_name):
             else:
                 column_types[col] = "TEXT"
 
-        # Create table
+        # 创建表
         create_table(table_name, column_types)
 
-        # Prepare the INSERT statement
+        # 准备 INSERT 语句
         columns = ', '.join(df.columns)
         placeholders = ', '.join(['%s'] * len(df.columns))
         insert_statement = f"INSERT INTO {table_name} ({columns}) VALUES ({placeholders})"
 
-        # Execute the INSERT statement for each row
+        # 为每一行执行 INSERT 语句
         for _, row in df.iterrows():
             try:
                 mycursor.execute(insert_statement, tuple(row))
@@ -180,13 +180,13 @@ def import_excel_data(file_path, table_name):
                 print(f"Error inserting row: {err}")
 
         mydb.commit()
-        print("Excel data imported successfully")
+        print("Excel数据导入成功")
     except mysql.connector.Error as err:
-        print(f"Error importing Excel data: {err}")
+        print(f"导入Excel数据出错: {err}")
     except FileNotFoundError:
-        print(f"Error: File not found at path: {file_path}")
+        print(f"错误: 文件未找到，路径: {file_path}")
     except Exception as e:
-        print(f"An unexpected error occurred: {e}")
+        print(f"发生意外错误: {e}")
 
 def store_text_data(table_name, text_data):
     try:
@@ -198,21 +198,19 @@ def store_text_data(table_name, text_data):
         )
         mycursor = mydb.cursor()
 
-        # Insert into the first column of the table
-        # Assuming the first column is a suitable place to store the text data
+        # 插入到表的第一列
+        # 假设第一列是存储文本数据的合适位置
         df = pd.read_excel('Model_py.xlsx')
         first_column = df.columns[0]
         insert_statement = f"INSERT INTO {table_name} ({first_column}) VALUES (%s)"
         mycursor.execute(insert_statement, (text_data,))
 
         mydb.commit()
-        print("Text data stored successfully")
+        print("文本数据存储成功")
     except mysql.connector.Error as err:
-        print(f"Error storing text data: {err}")
+        print(f"存储文本数据出错: {err}")
 
 if __name__ == '__main__':
     create_database()
     create_students_table()
     create_recommendations_table()
-    # import_excel_data('Model_py.xlsx', 'model_data')
-    # store_text_data('model_data', 'This is a sample text data.')

@@ -6,10 +6,7 @@ from sklearn.preprocessing import MinMaxScaler
 def load_data(file_path):
     """
     加载学生数据
-    
-    Args:
         file_path: 数据文件路径
-    
     Returns:
         pandas DataFrame: 包含学生数据的数据框
     """
@@ -29,10 +26,7 @@ def load_data(file_path):
 def clean_data(df):
     """
     清洗数据，处理缺失值和异常值
-    
-    Args:
         df: 原始数据
-    
     Returns:
         pandas DataFrame: 清洗后的数据
     """
@@ -66,10 +60,7 @@ def clean_data(df):
 def calculate_dimensions(df):
     """
     计算四个维度的得分
-    
-    Args:
         df: 清洗后的数据
-    
     Returns:
         pandas DataFrame: 增加了维度得分的数据
     """
@@ -117,10 +108,7 @@ def calculate_dimensions(df):
 def identify_student_types(df):
     """
     识别学生类型
-    
-    Args:
         df: 包含维度得分的数据
-    
     Returns:
         pandas DataFrame: 增加了学生类型的数据
     """
@@ -200,9 +188,6 @@ if __name__ == "__main__":
                             'cognitive_score': row['认知维度_综合得分'] if '认知维度_综合得分' in row else None,
                             'affective_score': row['情感维度_综合得分'] if '情感维度_综合得分' in row else None,
                             'behavioral_score': row['行为维度_综合得分'] if '行为维度_综合得分' in row else None,
-                            'expert_diagnosis': None,  # 假设没有专家诊断
-                            'risk_level': None,  # 假设没有风险等级
-                            'risk_factors': None,  # 假设没有风险因素
                             'CNTSTUID': row['CNTSTUID'] if 'CNTSTUID' in row else None,
                             'ST004D01T': row['ST004D01T'] if 'ST004D01T' in row else None,
                             'ST001D01T': row['ST001D01T'] if 'ST001D01T' in row else None,

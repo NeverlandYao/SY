@@ -63,39 +63,12 @@ def load_student_data_from_excel_transposed(file_path: str) -> list[dict]:
         traceback.print_exc()
         return []
 
-# 示例用法（这部分代码通常用于测试，在实际后端应用中会被 API 路由调用）
 if __name__ == "__main__":
-    # 替换为你的实际 Excel 文件路径
-    # 注意：这里的路径应该是相对于运行 Python 脚本的位置的
-    # 或者使用绝对路径
-    excel_file_path = 'Model_py.xlsx' # <-- 修改为你的实际文件路径
-    #/Users/neverland/vscode/LLMs_/NewProject/Model_py.xlsx
+    # 定义Excel文件路径
+    excel_file_path = 'Model_py.xlsx' 
 
-    # 为了演示，假设文件和脚本在同一目录，或者你知道相对路径
-    # excel_file_path = 'student_data.xlsx'
-
-    # 如果文件在项目根目录下的 data 文件夹里
-    # current_dir = os.path.dirname(__file__) # 获取当前脚本所在目录
-    # project_root = os.path.abspath(os.path.join(current_dir, '..', '..')) # 假设 data_loader 在 src/backend
-    # excel_file_path = os.path.join(project_root, 'data', 'student_data.xlsx') # 构建完整路径
-
+    # 从Excel文件加载学生数据
     student_list_raw = load_student_data_from_excel_transposed(excel_file_path)
 
-    # 现在 student_list_raw 就是一个字典列表，每个字典是原始学生数据
-    # 你需要在你的 API 路由中获取这个列表，然后遍历处理：
-
-    # 假设你的处理函数叫做 process_student_data_for_frontend
-    # (包含你提供的 73-171 行逻辑)
-
-    # processed_student_list = []
-    # for student_raw_data in student_list_raw:
-    #    # 调用你现有的处理函数
-    #    processed_student = process_student_data_for_frontend(student_raw_data)
-    #    processed_student_list.append(processed_student)
-
-    # print("\n处理后的学生数据示例 (如果数据加载成功):")
-    # if processed_student_list:
-    #    import json
-    #    print(json.dumps(processed_student_list[0], indent=2, ensure_ascii=False)) # 打印第一条处理后的数据
-
-    pass # Placeholder for potential testing logic
+    # 此处预留，用于将来的操作
+    pass

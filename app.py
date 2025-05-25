@@ -2,16 +2,14 @@ from flask import Flask, render_template, request, jsonify
 import pandas as pd
 import json
 import os
-import db_utils  # 导入数据库工具
+import db_utils  # 导入数据库工具模块
 import student_agent as sa
 import data_processing as dp
-# 移除未使用的绘图导入: matplotlib, seaborn, plotly
+# 移除未使用的绘图导入
 import numpy as np
-# from io import BytesIO # 当前未使用
-# import base64 # 当前未使用
 import time
 import traceback
-from datetime import datetime # 添加于页脚年份
+from datetime import datetime # 为了在页脚显示年份
 
 import db_utils  # 导入数据库工具
 import os
@@ -25,21 +23,6 @@ system_ready = False
 # --- 数据加载器初始化 ---
 # 尝试初始化实际的 DataLoader
 data_loader = None
-# try:
-#     # 假设你的实际 DataLoader 类在 .data_loader 模块中，并且需要文件路径
-#     # from .data_loader import DataLoader
-#     # EXCEL_FILE_PATH = os.environ.get('EXCEL_FILE_PATH', 'data/students_data.xlsx') # 从环境变量或默认路径获取文件
-#     # if not os.path.exists(EXCEL_FILE_PATH):
-#     #     print(f"错误: Excel 文件未找到: {EXCEL_FILE_PATH}")
-#     #     # data_loader 保持 None
-#     # else:
-#     #     data_loader = DataLoader(EXCEL_FILE_PATH)
-#     #     print("实际数据加载器初始化成功.")
-
-# except Exception as e:
-#     print(f"错误: 数据加载器初始化失败: {e}")
-#     # data_loader 保持 None，这会在路由中被检查到
-#     pass
 
 # --- 类型颜色映射 (从 JS 移动以保持一致性) ---
 type_color_mapping = {
@@ -68,7 +51,6 @@ def map_gender(value):
 
 def map_grade(value):
     """将年级代码映射为文本"""
-    # 这是基于 PISA 通常情况的示例，具体需要查阅你的 Codebook
     grade_map = {
         7: "7年级", 8: "8年级", 9: "9年级", 10: "10年级",
         11: "11年级", 12: "12年级", 13: "13年级"
@@ -92,12 +74,10 @@ def map_agreement(value):
 
 
 def process_student_data(student_data):
-    """
-    将单个学生的原始数据（字典）处理成结构化的画像数据（字典）。
-    确保这里的 get() 调用使用了正确的原始字段名。
+    """将单个学生的原始数据（字典）处理成结构化的画像数据（字典）。
+    确保这里的 get() 调用使用了正确的原始字段名
     """
     if not student_data or not isinstance(student_data, dict):
-        # 这通常不应该发生，因为在路由中已经检查过 None
         return None
 
     processed_data = {}
@@ -129,12 +109,6 @@ def process_student_data(student_data):
     processed_data["对观点B的看法"] = map_agreement(student_data.get("ST099Q02TA"))
     processed_data["对观点C的看法"] = map_agreement(student_data.get("ST099Q03TA"))
     processed_data["对观点D的看法"] = map_agreement(student_data.get("ST099Q04TA"))
-
-    # --- 其他可能感兴趣的维度 ---
-    # 示例：家庭背景、学习资源、幸福感等，根据可用字段添加
-    # processed_data["家庭经济社会文化地位指数"] = student_data.get("ESCS")
-    # processed_data["是否有自己的书桌"] = map_yes_no(student_data.get("ST011Q01TA"))
-    # processed_data["学校归属感"] = student_data.get("BELONG")
 
     return processed_data
 
@@ -214,13 +188,6 @@ def index():
 
     if not system_ready:
         return render_template('error.html', message="系统初始化失败，请检查控制台输出。")
-
-    # if data_loader is None: # 移除此检查，因为student_data是主数据源
-    #     return jsonify({
-    #         "status": "API 运行中",
-    #         "data_loader_status": "数据加载器初始化失败",
-    #         "message": "访问 /api/students 获取所有学生数据 或 /api/students/<student_id> 获取单个学生数据"
-    #     })
 
     # 准备概述部分的数据
     students_list = []
@@ -315,19 +282,11 @@ def get_student_details(student_id):
         # 2. 推荐
         recommendations = agent.generate_recommendations(student_id)
 
-        # 3. 干预计划 (如果已实现)
-        # intervention_plan = agent.generate_intervention_plan(student_id)
-
-        # 4. 学习资源 (如果已实现)
-        # learning_resources = agent.generate_learning_resources(student_id)
-
         # --- 合并为一个响应对象 ---
         response_data = {
             "student_id": analysis.get('student_id'),
             "expert_diagnosis": analysis.get('expert_diagnosis', '暂无分析'),
             "recommendations": recommendations,
-            # "intervention_plan": intervention_plan,
-            # "learning_resources": learning_resources
         }
 
         return jsonify(response_data)
@@ -338,8 +297,7 @@ def get_student_details(student_id):
         return jsonify({"error": f"无法获取学生 {student_id} 的详细数据: {str(e)}"}), 500
 
 
-# 移除旧的 /student/<id> 和 /api/recommendations/<id> 路由
-# 简单的错误模板路由（可选，但建议使用）
+# 简单的错误模板路由
 @app.route('/error')
 def error_page():
     message = request.args.get('message', '发生意外错误。')
