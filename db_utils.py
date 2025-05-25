@@ -199,7 +199,6 @@ def store_text_data(table_name, text_data):
         mycursor = mydb.cursor()
 
         # 插入到表的第一列
-        # 假设第一列是存储文本数据的合适位置
         df = pd.read_excel('Model_py.xlsx')
         first_column = df.columns[0]
         insert_statement = f"INSERT INTO {table_name} ({first_column}) VALUES (%s)"
