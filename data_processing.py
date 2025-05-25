@@ -16,7 +16,10 @@ def load_data(file_path):
     # 加载所有列，以便保留原始ID (CNTSTUID)
     try:
         # 读取数据
-        df = pd.read_excel(file_path, header=0)
+        if file_path.endswith('.csv'):
+            df = pd.read_csv(file_path, header=0)
+        else:
+            df = pd.read_excel(file_path, header=0)
         print(f"成功加载数据: {df.shape[0]} 行, {df.shape[1]} 列")
         return df
     except Exception as e:
@@ -88,26 +91,26 @@ def calculate_dimensions(df):
         # 标准化
         scaler = MinMaxScaler()
         df_result[knowledge_cols] = scaler.fit_transform(df_result[knowledge_cols])
-        df_result['知识维度_综合得分'] = df_result[knowledge_cols].mean(axis=1)
+        df_result['知识维度_综合得分'] = df_result[knowledge_cols].mean(axis=1).round(2)
     
     # 认知维度
     cognitive_cols = [col for col in [f'ST307Q{i:02d}JA' for i in range(7, 11)] if col in df_result.columns]
     if cognitive_cols:
         # 确保在计算均值前排除 97
         df_cognitive = df_result[cognitive_cols].replace(97, np.nan)
-        df_result['认知维度_综合得分'] = df_cognitive.mean(axis=1) / 4.0  # 假设满分为4
+        df_result['认知维度_综合得分'] = (df_cognitive.mean(axis=1) / 4.0).round(2)  # 假设满分为4
         # 如果计算结果为 NaN (例如，所有值都是 97)，则替换为 0
         df_result['认知维度_综合得分'] = df_result['认知维度_综合得分'].fillna(0)
 
     # 情感维度
     affective_cols = [col for col in [f'ST297Q{i:02d}JA' for i in range(1, 11)] if col in df_result.columns]
     if affective_cols:
-        df_result['情感维度_综合得分'] = (4 - df_result[affective_cols].mean(axis=1)) / 4.0  # 反向计分，假设满分为4
+        df_result['情感维度_综合得分'] = ((4 - df_result[affective_cols].mean(axis=1)) / 4.0).round(2)  # 反向计分，假设满分为4
     
     # 行为维度
     behavioral_cols = [col for col in [f'ST326Q{i:02d}JA' for i in range(1, 7)] if col in df_result.columns]
     if behavioral_cols:
-        df_result['行为维度_综合得分'] = df_result[behavioral_cols].mean(axis=1) / 5.0  # 假设满分为5
+        df_result['行为维度_综合得分'] = (df_result[behavioral_cols].mean(axis=1) / 5.0).round(2)  # 假设满分为5
     
     return df_result
 
@@ -168,8 +171,11 @@ def identify_student_types(df):
     
     return df_result
 
+from db_utils import insert_student_data, insert_recommendation_data
+from student_agent import StudentAgent
+
 if __name__ == "__main__":
-    file_path = 'Model_py.xlsx'  # 替换为你的数据文件路径
+    file_path = 'student_profiles.csv'  # 替换为你的数据文件路径
     df = load_data(file_path)
     if df is not None:
         df_cleaned = clean_data(df)
@@ -180,6 +186,44 @@ if __name__ == "__main__":
                 if df_identified is not None:
                     print("\nProcessed Data:")
                     print(df_identified.head())
+
+                    # 初始化 StudentAgent
+                    student_agent = StudentAgent(file_path)
+
+                    # 存储数据到数据库
+                    for index, row in df_identified.iterrows():
+                        student_id = int(row['CNTSTUID'])
+                        student_data = {
+                            'student_id': student_id,  # 使用 CNTSTUID 作为 student_id
+                            'student_type': row['学生类型'],
+                            'knowledge_score': row['知识维度_综合得分'] if '知识维度_综合得分' in row else None,
+                            'cognitive_score': row['认知维度_综合得分'] if '认知维度_综合得分' in row else None,
+                            'affective_score': row['情感维度_综合得分'] if '情感维度_综合得分' in row else None,
+                            'behavioral_score': row['行为维度_综合得分'] if '行为维度_综合得分' in row else None,
+                            'expert_diagnosis': None,  # 假设没有专家诊断
+                            'risk_level': None,  # 假设没有风险等级
+                            'risk_factors': None,  # 假设没有风险因素
+                            'CNTSTUID': row['CNTSTUID'] if 'CNTSTUID' in row else None,
+                            'ST004D01T': row['ST004D01T'] if 'ST004D01T' in row else None,
+                            'ST001D01T': row['ST001D01T'] if 'ST001D01T' in row else None,
+                            'PV1MATH': row['PVMATH'] if 'PVMATH' in row else None,
+                            'PV1READ': row['PVREAD'] if 'PVREAD' in row else None,
+                            'PV1SCIE': row['PVSCIE'] if 'PV1SCIE' in row else None,
+                            'ST099Q01TA': row['ST099Q01TA'] if 'ST099Q01TA' in row else None,
+                            'ST099Q02TA': row['ST099Q02TA'] if 'ST099Q02TA' in row else None,
+                            'ST099Q03TA': row['ST099Q03TA'] if 'ST099Q03TA' in row else None,
+                            'ST099Q04TA': row['ST099Q04TA'] if 'ST099Q04TA' in row else None
+                        }
+                        insert_student_data(student_data)
+
+                        # 生成并存储推荐
+                        recommendations = student_agent.generate_recommendations(student_id)
+
+                        if recommendations:
+                            insert_recommendation_data(student_id, '知识维度', recommendations.get('知识维度', ''))
+                            insert_recommendation_data(student_id, '认知维度', recommendations.get('认知维度', ''))
+                            insert_recommendation_data(student_id, '情感维度', recommendations.get('情感维度', ''))
+                            insert_recommendation_data(student_id, '行为维度', recommendations.get('行为维度', ''))
                 else:
                     print("学生类型识别失败")
             else:

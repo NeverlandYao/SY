@@ -33,7 +33,6 @@
     <div class="bg-gradient-to-r from-purple-600 to-indigo-700 text-white shadow-lg">
         <div class="container mx-auto px-4 py-6">
             <h1 class="text-3xl font-bold">学生画像与学业规划系统</h1>
-            <p class="mt-2 opacity-90">基于多智能体生成学生画像与学业规划研究</p>
         </div>
     </div>
 
@@ -213,7 +212,7 @@
                 <div class="bg-white rounded-lg shadow-md p-4 all-students-table-container">
                     <h2 class="text-xl font-semibold mb-4 text-gray-800 border-b pb-2">全体学生画像</h2>
                     <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
+                        <table class="table-auto divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr>
                                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">学生ID</th>
@@ -222,7 +221,6 @@
                                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">认知维度</th>
                                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">情感维度</th>
                                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">行为维度</th>
-                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200" id="all-students-table">
@@ -316,9 +314,6 @@
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${student.behavioral_score}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"></td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                <button class="text-indigo-600 hover:text-indigo-900 view-student-btn" data-id="${student["国际学生ID"]}">
-                                    查看
-                                </button>
                             </td>
                         `;
                         tableBody.appendChild(row);

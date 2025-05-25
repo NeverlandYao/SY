@@ -204,7 +204,13 @@ class StudentAgent:
             print(f"有效的学生ID范围: {min(self.data['CNTSTUID'])}-{max(self.data['CNTSTUID'])}")
             return None
 
-        student_data = self.data[self.data['CNTSTUID'] == student_id]
+        student_data = self.data[self.data['CNTSTUID'] == int(student_id)]
+
+        # 检查学生数据是否为空
+        if student_data.empty:
+            print(f"错误: 找不到ID为 {student_id} 的学生")
+            print(f"有效的学生ID范围: {min(self.data['CNTSTUID'])}-{max(self.data['CNTSTUID'])}")
+            return None
 
         # 检查必要的列是否存在
         required_columns = ['知识维度_综合得分', '认知维度_综合得分', '情感维度_综合得分', '行为维度_综合得分', '学生类型']
@@ -222,7 +228,7 @@ class StudentAgent:
 
         # 基础分析
         analysis = {
-            'student_id': student_id,
+            'student_id': int(student_id),
             'knowledge_score': student_data['知识维度_综合得分'].values[0] if '知识维度_综合得分' in student_data.columns else 0.5,
             'cognitive_score': student_data['认知维度_综合得分'].values[0] if '认知维度_综合得分' in student_data.columns else 0.5,
             'affective_score': student_data['情感维度_综合得分'].values[0] if '情感维度_综合得分' in student_data.columns else 0.5,
