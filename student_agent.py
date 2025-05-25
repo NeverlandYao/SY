@@ -42,19 +42,19 @@ class StudentAgent:
             },
             "学科教学专家": {
                 "role": "你是一位资深的学科教学专家...",
-                "responsibility": "根据学生在知识维度的表现，提供2-3条针对性的学科学习建议和资源推荐"
+                "responsibility": "根据学生在知识维度的表现，提供3-5条针对性的学科学习建议和资源推荐"
             },
             "认知心理学家": {
-                "role": "你是一位认知心理学家...",
-                "responsibility": "分析学生的认知特点，提供2-3条认知能力培养和思维方式优化的专业建议"
+                "role": "你是一位资深的认知心理学家...",
+                "responsibility": "分析学生的认知特点，提供3-5条认知能力培养和思维方式优化的专业建议，确保建议具体、可操作且具有深度。"
             },
             "教育心理咨询师": {
                 "role": "你是一位专业的教育心理咨询师...",
                 "responsibility": "关注学生的情感状态，提供2-3条情绪管理、压力应对和心理健康建议"
             },
             "学习行为指导专家": {
-                "role": "你是一位学习行为指导专家...",
-                "responsibility": "根据学生的行为模式，提供2-3条习惯培养、行为改变和学习环境优化的具体策略"
+                "role": "你是一位资深的学习行为指导专家...",
+                "responsibility": "根据学生的行为模式，提供3-5条习惯培养、行为改变和学习环境优化的具体策略，确保策略具有可行性和针对性。"
             },
             "教育人工智能专家": {
                 "role": "你是一位教育人工智能专家...",
@@ -77,11 +77,13 @@ class StudentAgent:
 
     def _consult_expert(self, expert_name, query, available_actions=None, model="Qwen/Qwen2.5-7B-Instruct-1M"):
         """咨询特定领域的专家智能体，并允许选择执行不同的 action
+
         Args:
             expert_name: 专家名称
             query: 查询内容
             available_actions: 可供选择的动作列表，例如 ["直接回复", "咨询其他LLM"]
             model: 使用的模型ID
+
         Returns:
             dict: 包含选择的 action 和专家的意见
         """
@@ -135,51 +137,29 @@ class StudentAgent:
                     content = chunk.choices[0].delta.content or ""
                     if content:
                         if first_line and available_actions:
-        try:
-            response = self.client.chat.completions.create(
-                model=model,
-                messages=messages,
-                stream=True
-            )
-
-            selected_action = None
-            llm_response = ""
-            first_line = True
-
-            for chunk in response:
-                try:
-                    content = chunk.choices[0].delta.content or ""
-                    if content:
-                        if first_line and available_actions:
-                            # 尝试从第一行解析 action
+                            # 检查第一行是否包含可用的动作
                             for act in available_actions:
                                 if content.strip().startswith(act):
                                     selected_action = act
-                                    # 移除内容块中已识别的 action
+                                    # 移除第一行的动作描述
                                     content = content.replace(act, "", 1).strip()
                                     break
                             first_line = False
 
                         llm_response += content
-                        # print(content, end='', flush=True)
+                        # 打印实时响应
                 except Exception as e:
                     continue
 
             print(f"\n{expert_name}已完成分析")
 
-            # 确保从最终响应的开头移除所选的 action
+            # 处理最终响应
             final_response = llm_response.strip()
             if selected_action and final_response.startswith(selected_action):
-                 # Use regex to handle potential whitespace or punctuation after the action
+                 # 如果第一行包含选定的动作，移除它
                  pattern = r"^" + re.escape(selected_action) + r"[\s\W]*"
                  final_response = re.sub(pattern, "", final_response).strip()
 
-
-            return {"action": selected_action, "response": final_response}
-
-        except Exception as e:
-            print(f"咨询专家时出错: {e}")
-            return {"action": None, "response": f"咨询{expert_name}失败: {str(e)}"}
 
             return {"action": selected_action, "response": final_response}
 
@@ -391,7 +371,6 @@ class StudentAgent:
 
         cognitive_response = self._consult_expert("认知心理学家", cognitive_query)
         print(cognitive_response)
-        # recommendations["认知维度"] = self._parse_recommendations(cognitive_response['response'])
         recommendations["认知维度"] = cognitive_response['response']
 
         # 3. 教育心理咨询师提供情感维度建议
@@ -419,7 +398,7 @@ class StudentAgent:
         detail_keys = [k for k in profile.keys() if k.startswith('行为_')]
         for k in detail_keys:
             behavioral_query += f"{k}: {profile[k]:.2f}\n"
-        behavioral_query += "\\n请针对这位学生的学习行为模式，提供1-2条培养良好学习习惯、提高时间管理能力和改善学习环境的具体建议，仅仅提供建议即可."
+        behavioral_query += "\\n请针对这位学生的学习行为模式，提供1-2条培养良好学习习惯、提高时间管理能力和改善学习环境的具体建议."
 
         behavioral_response = self._consult_expert("学习行为指导专家", behavioral_query)
         print(behavioral_response)

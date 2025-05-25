@@ -85,7 +85,7 @@
                     </table>
                 </div>
 
-                <!-- Detailed Student Info -->
+                <!-- 详细学生信息 -->
                 <div class="bg-white rounded-lg shadow-md p-4 flex flex-col flex-grow">
                     <h2 class="text-xl font-semibold mb-4 text-gray-800 border-b pb-2">详细信息</h2>
                     <div id="student-details-container" class="overflow-y-auto flex-grow">
@@ -240,17 +240,17 @@
 
         // 初始化页面
         document.addEventListener('DOMContentLoaded', function() {
-            // Fetch student data from the correct API endpoint and populate the dropdown
-            fetch('http://127.0.0.1:5010/api/students/') // <-- Changed endpoint to /api/students/
+            // 抓取学生列表并填充下拉框
+            fetch('http://127.0.0.1:5010/api/students/') // <-- 将端点更改为 /api/students/
                 .then(response => {
                     if (!response.ok) {
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
                     return response.json();
                  })
-                .then(students => { // <-- Changed variable name to 'students' for clarity
+                .then(students => { // <-- 为清楚起见，将变量名称更改为 'students'
                     const studentSelect = document.getElementById('student-select');
-                    // Clear previous options if any
+                    // 清空现有选项
                     studentSelect.innerHTML = '';
                     students.forEach(student => {
                         const option = document.createElement('option');
@@ -260,16 +260,16 @@
                     });
 
                     // 初始化显示第一个学生 (确保 ID 有效)
-                    if (students.length > 0) { // <-- Use 'students' array
+                    if (students.length > 0) { // <-- 使用学生列表
                         currentStudentId = 34400002;
-                        // Set the dropdown to the first valid student
+                        // 设置默认选中项
                         studentSelect.value = currentStudentId;
                         updateStudentDisplay(currentStudentId);
                     }
                 })
                 .catch(error => {
                     console.error('Error fetching student list for dropdown:', error);
-                    // Optionally display an error message
+                    // 显示错误信息
                     document.getElementById('student-details').innerHTML = `<p class="text-red-500">加载学生列表时出错: ${error.message}</p>`;
                 });
             
@@ -292,7 +292,7 @@
             const tableBody = document.getElementById('all-students-table');
             tableBody.innerHTML = '';
 
-            // Fetch all student IDs (assuming you have an endpoint to get all IDs)
+            // 抓取所有学生 Id
             fetch('http://127.0.0.1:5010/api/students/')
                 .then(response => response.json())
                 .then(data => {
@@ -361,7 +361,7 @@
             updateRecommendationCard('behavioral-recommendations', ['加载中...']);
 
 
-            // 1. Fetch student basic data
+            // 1. 抓取学生基础数据
             fetch(`http://127.0.0.1:5010/api/student/${String(studentId)}`)
                 .then(response => {
                     if (!response.ok) {
@@ -409,7 +409,7 @@
                     // 更新雷达图 (传递基本数据)
                     updateRadarCharts(basicData);
 
-                    // 2. Fetch student detailed data
+                    // 2. 抓取学生详细数据
                     document.getElementById('expert-diagnosis').textContent = '加载中...'; // 更新诊断区域加载状态
                     updateRecommendationCard('knowledge-recommendations', ['加载中...']);
                     updateRecommendationCard('cognitive-recommendations', ['加载中...']);
@@ -444,15 +444,7 @@
                                 expertDiagnosisElement.textContent = ' ';
                             }
 
-                            // 更新学业规划建议卡片 (来自 /details)
-                            // 这些是旧的，我们现在将从 /plan 获取
-                            // updateRecommendationCard('knowledge-recommendations', detailData.recommendations?.knowledge);
-                            // updateRecommendationCard('cognitive-recommendations', detailData.recommendations?.cognitive);
-                            // updateRecommendationCard('affective-recommendations', detailData.recommendations?.affective);
-                            // updateRecommendationCard('behavioral-recommendations', detailData.recommendations?.behavioral);
-
-
-                            // 3. Fetch student plan data (newly added)
+                            // 3. 抓取学生计划数据 
                             fetch(`http://127.0.0.1:5010/api/student/${String(studentId)}/plan`)
                                 .then(response => {
                                     if (!response.ok) {
@@ -471,7 +463,7 @@
                                         return;
                                     }
 
-                                    // Replace double newlines with single newline in planData values
+                                    // 处理计划数据，确保字符串中的换行符正确
                                     for (const key in planData) {
                                         if (typeof planData[key] === 'string') {
                                             planData[key] = planData[key].replace(/\n\n/g, '\n');
@@ -520,7 +512,7 @@
                 });
         }
 
-        // Helper function to update recommendation cards
+        // 更新建议卡片内容
         function updateRecommendationCard(elementId, recommendations) {
             const ulElement = document.getElementById(elementId);
             if (!ulElement) return; // 确保元素存在
@@ -557,7 +549,7 @@
 
         // 更新雷达图 (使用 data 对象)
         function updateRadarCharts(data) {
-            // Clear old charts
+            // 清除旧的雷达图
             if (window.studentRadarChart) {
                 window.studentRadarChart.destroy();
             }
@@ -565,7 +557,7 @@
                 window.comparisonRadarChart.destroy();
             }
 
-            // Radar chart configuration
+            // 雷达图配置
             const radarData = {
                 labels: ['知识维度', '认知维度', '情感维度', '行为维度'],
                 datasets: [{
@@ -606,7 +598,7 @@
                     {
                         label: '班级平均值',
                         data: [
-                            77, // Replace with actual average scores if available
+                            77, // 知识维度平均值
                             77.2,
                             78.8,
                             73.2
@@ -655,7 +647,7 @@
                 }
             };
 
-            // Create radar chart
+            // 创建雷达图
             window.studentRadarChart = new Chart(
                 document.getElementById('student-radar-chart').getContext('2d'),
                 {
