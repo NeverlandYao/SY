@@ -310,8 +310,8 @@
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${student.student_type}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${student.knowledge_score}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${student.cognitive_score}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${student.affective_score}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${student.behavioral_score}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${student.affective_score !== undefined ? student.affective_score.toFixed(2) : 'N/A'}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${student.behavioral_score !== undefined ? student.behavioral_score.toFixed(2) : 'N/A'}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"></td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             </td>
