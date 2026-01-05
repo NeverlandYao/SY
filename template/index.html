@@ -3,669 +3,247 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>学生画像与学业规划系统</title>
+    <title>EduInsight 智绘学途</title>
+    <!-- Tailwind CSS -->
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <!-- Marked.js -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.1/css/all.min.css">
-    <style>
-        #student-details-container {
-            max-height: 1000px;
-            overflow-y: auto;
-        }
-        .all-students-table-container {
-            flex-grow: 1;
-            overflow-y: auto;
-        }
-        .left-column {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-        .right-column {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-    </style>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v={{ range(1, 10000) | random }}">
 </head>
-<body class="bg-gray-50 full-height-below-header" style="min-height: calc(100vh - 104px); display: flex; flex-direction: column;">
-    <div class="bg-gradient-to-r from-purple-600 to-indigo-700 text-white shadow-lg">
-        <div class="container mx-auto px-4 py-6">
-            <h1 class="text-3xl font-bold">学生画像与学业规划系统</h1>
+<body class="bg-gray-50 flex flex-col min-h-screen">
+    
+    <!-- Header -->
+    <header class="bg-white shadow-sm z-10 sticky top-0">
+        <div class="container mx-auto px-6 py-4 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-indigo-600 text-white p-2 rounded-lg shadow-md">
+                    <i class="fas fa-graduation-cap text-xl"></i>
+                </div>
+                <h1 class="text-2xl font-bold text-gray-800 tracking-tight">EduInsight 智绘学途</h1>
+            </div>
+            <div class="text-sm text-gray-500">
+                <i class="far fa-calendar-alt mr-2"></i>{{ current_year }} 学年
+            </div>
         </div>
-    </div>
+    </header>
 
-    <div class="container mx-auto px-4 py-6">
-        <div class="flex flex-col md:flex-row gap-6 flex-grow">
-            <!-- 左侧区域：学生选择和信息 -->
-            <!-- 左侧区域：学生选择和信息 -->
-            <div class="md:w-1/3 flex flex-col gap-6 left-column">
-                <div class="bg-white rounded-lg shadow-md p-4">
-                    <h2 class="text-xl font-semibold mb-4 text-gray-800 border-b pb-2">学生选择</h2>
-                    <div class="mb-4">
-                        <label for="student-select" class="block text-sm font-medium text-gray-700 mb-1">选择学生</label>
-                        <select id="student-select" class="w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
-                        </select>
+    <main class="flex-grow container mx-auto px-6 py-8">
+        <div class="flex flex-col gap-8">
+            
+            <!-- Top Row: Student Info & Radar Analysis -->
+            <div class="flex flex-col lg:flex-row gap-8 items-stretch">
+                <!-- Left Column: Controls & Basic Info -->
+                <div class="lg:w-1/3 flex flex-col gap-6">
+                    <!-- Student Selector -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 card">
+                        <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                            <i class="fas fa-users mr-2 text-indigo-500"></i>学生选择
+                        </h2>
+                        <div class="space-y-4">
+                            <div>
+                                <label for="student-select" class="block text-sm font-medium text-gray-600 mb-1.5">选择学生档案</label>
+                                <div class="relative">
+                                    <select id="student-select" class="block w-full pl-3 pr-10 py-2.5 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md shadow-sm bg-gray-50">
+                                        <!-- Options populated by JS -->
+                                    </select>
+                                </div>
+                            </div>
+                            <button id="view-student" class="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors">
+                                <i class="fas fa-search mr-2 mt-0.5"></i> 查看分析报告
+                            </button>
+                        </div>
                     </div>
-                    <button id="view-student" class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition">查看学生</button>
-                </div>
 
-                <div class="bg-white rounded-lg shadow-md p-4">
-                    <h2 class="text-xl font-semibold mb-4 text-gray-800 border-b pb-2">学生基本信息</h2>
-                    <table class="w-full text-sm">
-                        <tbody>
-                            <tr class="border-b">
-                                <td class="py-2 font-medium text-gray-700">学生ID</td>
-                                <td class="py-2" id="student-id"></td>
-                            </tr>
-                            <tr class="border-b">
-                                <td class="py-2 font-medium text-gray-700">学生类型</td>
-                                <td class="py-2">
-                                    <span id="student-type" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"></span>
-                                </td>
-                            </tr>
-                            <tr class="border-b">
-                                <td class="py-2 font-medium text-gray-700">知识维度</td>
-                                <td class="py-2" id="knowledge-score"></td>
-                            </tr>
-                            <tr class="border-b">
-                                <td class="py-2 font-medium text-gray-700">认知维度</td>
-                                <td class="py-2" id="cognition-score"></td>
-                            </tr>
-                            <tr class="border-b">
-                                <td class="py-2 font-medium text-gray-700">情感维度</td>
-                                <td class="py-2" id="affection-score"></td>
-                            </tr>
-                            <tr>
-                                <td class="py-2 font-medium text-gray-700">行为维度</td>
-                                <td class="py-2" id="behavior-score"></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- 详细学生信息 -->
-                <div class="bg-white rounded-lg shadow-md p-4 flex flex-col flex-grow">
-                    <h2 class="text-xl font-semibold mb-4 text-gray-800 border-b pb-2">详细信息</h2>
-                    <div id="student-details-container" class="overflow-y-auto flex-grow">
-                        <div id="student-details">
-                            <p class="text-gray-700">请选择一个学生查看详细信息。</p>
+                    <!-- Basic Info Card -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 card flex-grow flex flex-col justify-center">
+                        <div class="flex justify-between items-center mb-4 pb-2 border-b border-gray-100">
+                            <h2 class="text-lg font-bold text-gray-800 flex items-center">
+                                <i class="fas fa-id-card mr-2 text-indigo-500"></i>基本信息
+                            </h2>
+                            <span id="student-type" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                <!-- Type Badge -->
+                            </span>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <div class="bg-gray-50 p-3 rounded-lg text-center">
+                                <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">学生 ID</div>
+                                <div id="student-id" class="text-lg font-mono font-semibold text-gray-900">-</div>
+                            </div>
+                            <div class="bg-gray-50 p-3 rounded-lg text-center">
+                                <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">知识维度</div>
+                                <div id="knowledge-score" class="text-lg font-mono font-semibold text-indigo-600">-</div>
+                            </div>
+                            <div class="bg-gray-50 p-3 rounded-lg text-center">
+                                <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">认知维度</div>
+                                <div id="cognition-score" class="text-lg font-mono font-semibold text-indigo-600">-</div>
+                            </div>
+                            <div class="bg-gray-50 p-3 rounded-lg text-center">
+                                <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">情感维度</div>
+                                <div id="affection-score" class="text-lg font-mono font-semibold text-indigo-600">-</div>
+                            </div>
+                            <div class="col-span-2 bg-gray-50 p-3 rounded-lg text-center">
+                                <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">行为维度</div>
+                                <div id="behavior-score" class="text-lg font-mono font-semibold text-indigo-600">-</div>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- 右侧区域：雷达图和学业规划 -->
-            <div class="md:w-2/3 right-column">
-                <div class="bg-white rounded-lg shadow-md p-4 mb-6">
-                    <h2 class="text-xl font-semibold mb-4 text-gray-800 border-b pb-2">学生四维度画像</h2>
-                    <div class="flex flex-col md:flex-row gap-4">
-                        <div class="md:w-1/2">
-                            <div class="bg-gray-50 rounded-lg p-4">
-                                <h3 class="text-center text-lg font-medium text-gray-700 mb-2">个人画像</h3>
-                                <div class="w-full relative">
+                <!-- Right Column: Radar Charts -->
+                <div class="lg:w-2/3">
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 card h-full">
+                        <h2 class="text-lg font-bold text-gray-800 mb-6 pb-2 border-b border-gray-100 flex items-center">
+                            <i class="fas fa-chart-radar mr-2 text-indigo-500"></i>多维画像分析
+                        </h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 h-5/6 items-center">
+                            <div class="bg-gray-50 rounded-xl p-4 flex flex-col items-center h-full justify-center">
+                                <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-4">个人画像</h3>
+                                <div class="chart-container w-full">
                                     <canvas id="student-radar-chart"></canvas>
                                 </div>
                             </div>
-                        </div>
-                        <div class="md:w-1/2">
-                            <div class="bg-gray-50 rounded-lg p-4">
-                                <h3 class="text-center text-lg font-medium text-gray-700 mb-2">与平均水平对比</h3>
-                                <div class="w-full relative">
+                            <div class="bg-gray-50 rounded-xl p-4 flex flex-col items-center h-full justify-center">
+                                <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-4">群体对比</h3>
+                                <div class="chart-container w-full">
                                     <canvas id="comparison-radar-chart"></canvas>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <div class="bg-white rounded-lg shadow-md p-4 mb-6">
-                    <h2 class="text-xl font-semibold mb-4 text-gray-800 border-b pb-2">个性化学业规划建议</h2>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <!-- 知识维度建议卡片 -->
-                        <div class="bg-blue-50 rounded-lg p-4 border-l-4 border-blue-500">
-                            <h3 class="flex items-center text-lg font-medium text-blue-800 mb-2">
-                                <i class="fas fa-book mr-2"></i>知识维度建议
-                            </h3>
-                            <ul id="knowledge-recommendations" class="text-sm text-blue-700 space-y-1">
-                                <li class="flex items-start">
-                                    <i class="fas fa-check-circle mt-0.5 mr-1.5"></i>
-                                    <span>重点加强数学中的几何证明部分，建议每周完成3道拓展题</span>
-                                </li>
-                                <li class="flex items-start">
-                                    <i class="fas fa-check-circle mt-0.5 mr-1.5"></i>
-                                    <span>建立物理概念与公式之间的联系，可尝试制作思维导图辅助理解</span>
-                                </li>
-                                <li class="flex items-start">
-                                    <i class="fas fa-check-circle mt-0.5 mr-1.5"></i>
-                                    <span>利用科学的学习资源，建议参考《高中数学思维方法与解题技巧》</span>
-                                </li>
-                            </ul>
-                        </div>
-
-                        <!-- 认知维度建议卡片 -->
-                        <div class="bg-purple-50 rounded-lg p-4 border-l-4 border-purple-500">
-                            <h3 class="flex items-center text-lg font-medium text-purple-800 mb-2">
-                                <i class="fas fa-brain mr-2"></i>认知维度建议
-                            </h3>
-                            <ul id="cognitive-recommendations" class="text-sm text-purple-700 space-y-1">
-                                <li class="flex items-start">
-                                    <i class="fas fa-check-circle mt-0.5 mr-1.5"></i>
-                                    <span>培养批判性思维，可通过分析文章论点和论据的关系来练习</span>
-                                </li>
-                                <li class="flex items-start">
-                                    <i class="fas fa-check-circle mt-0.5 mr-1.5"></i>
-                                    <span>提高任务坚持度，建立25分钟专注学习后短暂休息的番茄工作法</span>
-                                </li>
-                                <li class="flex items-start">
-                                    <i class="fas fa-check-circle mt-0.5 mr-1.5"></i>
-                                    <span>利用思维导图整理知识点，加强知识间的联系与理解</span>
-                                </li>
-                            </ul>
-                        </div>
-
-                        <!-- 情感维度建议卡片 -->
-                        <div class="bg-green-50 rounded-lg p-4 border-l-4 border-green-500">
-                            <h3 class="flex items-center text-lg font-medium text-green-800 mb-2">
-                                <i class="fas fa-heart mr-2"></i>情感维度建议
-                            </h3>
-                            <ul id="affective-recommendations" class="text-sm text-green-700 space-y-1">
-                                <li class="flex items-start">
-                                    <i class="fas fa-check-circle mt-0.5 mr-1.5"></i>
-                                    <span>缓解数学焦虑，尝试通过解决简单题目建立信心</span>
-                                </li>
-                                <li class="flex items-start">
-                                    <i class="fas fa-check-circle mt-0.5 mr-1.5"></i>
-                                    <span>增强学校归属感，鼓励参与至少一项校园社团活动</span>
-                                </li>
-                                <li class="flex items-start">
-                                    <i class="fas fa-check-circle mt-0.5 mr-1.5"></i>
-                                    <span>培养内在学习动机，建议寻找学科知识与个人兴趣的联系点</span>
-                                </li>
-                            </ul>
-                        </div>
-
-                        <!-- 行为维度建议卡片 -->
-                        <div class="bg-amber-50 rounded-lg p-4 border-l-4 border-amber-500">
-                            <h3 class="flex items-center text-lg font-medium text-amber-800 mb-2">
-                                <i class="fas fa-running mr-2"></i>行为维度建议
-                            </h3>
-                            <ul id="behavioral-recommendations" class="text-sm text-amber-700 space-y-1">
-                                <li class="flex items-start">
-                                    <i class="fas fa-check-circle mt-0.5 mr-1.5"></i>
-                                    <span>合理利用数字学习资源，推荐每周至少使用2小时在线学习平台</span>
-                                </li>
-                                <li class="flex items-start">
-                                    <i class="fas fa-check-circle mt-0.5 mr-1.5"></i>
-                                    <span>保持良好的出勤记录，避免不必要的缺勤</span>
-                                </li>
-                                <li class="flex items-start">
-                                    <i class="fas fa-check-circle mt-0.5 mr-1.5"></i>
-                                    <span>建立规律的作息时间表，确保充足睡眠和学习效率</span>
-                                </li>
-                            </ul>
+            <!-- Middle Row: Detailed Analysis & Recommendations -->
+            <div class="flex flex-col lg:flex-row gap-8 items-stretch">
+                <!-- Left: Detailed Analysis -->
+                <div class="lg:w-1/3">
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 card h-full flex flex-col">
+                        <h2 class="text-lg font-bold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
+                            <i class="fas fa-file-medical-alt mr-2 text-indigo-500"></i>详细报告
+                        </h2>
+                        <div id="student-details-container" class="flex-grow overflow-y-auto pr-2 custom-scrollbar">
+                            <div id="student-details">
+                                <div class="text-center py-10 text-gray-400">
+                                    <i class="fas fa-inbox text-4xl mb-3"></i>
+                                    <p>请选择一个学生查看详细信息</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="bg-white rounded-lg shadow-md p-4 all-students-table-container">
-                    <h2 class="text-xl font-semibold mb-4 text-gray-800 border-b pb-2">全体学生画像</h2>
-                    <div class="overflow-x-auto">
-                        <table class="table-auto divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">学生ID</th>
-                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">学生类型</th>
-                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ">知识维度</th>
-                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">认知维度</th>
-                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">情感维度</th>
-                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">行为维度</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200" id="all-students-table">
-                                <!-- 学生数据行将通过JavaScript动态生成 -->
-                            </tbody>
-                        </table>
+                <!-- Right: Recommendations -->
+                <div class="lg:w-2/3">
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 card h-full">
+                        <h2 class="text-lg font-bold text-gray-800 mb-6 pb-2 border-b border-gray-100 flex items-center">
+                            <i class="fas fa-lightbulb mr-2 text-yellow-500"></i>个性化学业规划建议
+                        </h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            
+                            <!-- Knowledge -->
+                            <div class="bg-blue-50 rounded-xl p-5 border border-blue-100 hover:shadow-md transition-shadow">
+                                <h3 class="flex items-center text-lg font-bold text-blue-900 mb-3">
+                                    <div class="w-8 h-8 rounded-full bg-blue-200 flex items-center justify-center mr-2 text-blue-700">
+                                        <i class="fas fa-book"></i>
+                                    </div>
+                                    知识维度建议
+                                </h3>
+                                <ul id="knowledge-recommendations" class="text-sm text-blue-800 space-y-2 pl-1 h-64 overflow-y-auto custom-scrollbar">
+                                    <!-- Items -->
+                                </ul>
+                            </div>
+
+                            <!-- Cognitive -->
+                            <div class="bg-purple-50 rounded-xl p-5 border border-purple-100 hover:shadow-md transition-shadow">
+                                <h3 class="flex items-center text-lg font-bold text-purple-900 mb-3">
+                                    <div class="w-8 h-8 rounded-full bg-purple-200 flex items-center justify-center mr-2 text-purple-700">
+                                        <i class="fas fa-brain"></i>
+                                    </div>
+                                    认知维度建议
+                                </h3>
+                                <ul id="cognitive-recommendations" class="text-sm text-purple-800 space-y-2 pl-1 h-64 overflow-y-auto custom-scrollbar">
+                                    <!-- Items -->
+                                </ul>
+                            </div>
+
+                            <!-- Affective -->
+                            <div class="bg-green-50 rounded-xl p-5 border border-green-100 hover:shadow-md transition-shadow">
+                                <h3 class="flex items-center text-lg font-bold text-green-900 mb-3">
+                                    <div class="w-8 h-8 rounded-full bg-green-200 flex items-center justify-center mr-2 text-green-700">
+                                        <i class="fas fa-heart"></i>
+                                    </div>
+                                    情感维度建议
+                                </h3>
+                                <ul id="affective-recommendations" class="text-sm text-green-800 space-y-2 pl-1 h-64 overflow-y-auto custom-scrollbar">
+                                    <!-- Items -->
+                                </ul>
+                            </div>
+
+                            <!-- Behavioral -->
+                            <div class="bg-amber-50 rounded-xl p-5 border border-amber-100 hover:shadow-md transition-shadow">
+                                <h3 class="flex items-center text-lg font-bold text-amber-900 mb-3">
+                                    <div class="w-8 h-8 rounded-full bg-amber-200 flex items-center justify-center mr-2 text-amber-700">
+                                        <i class="fas fa-running"></i>
+                                    </div>
+                                    行为维度建议
+                                </h3>
+                                <ul id="behavioral-recommendations" class="text-sm text-amber-800 space-y-2 pl-1 h-64 overflow-y-auto custom-scrollbar">
+                                    <!-- Items -->
+                                </ul>
+                            </div>
+
+                        </div>
                     </div>
                 </div>
             </div>
+
+            <!-- Bottom Row: All Students Table -->
+            <div class="flex flex-col lg:flex-row gap-8">
+                <div class="lg:w-2/3 lg:ml-auto">
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 card">
+                        <h2 class="text-lg font-bold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
+                            <i class="fas fa-list mr-2 text-indigo-500"></i>全体学生概览
+                        </h2>
+                        <div class="overflow-x-auto rounded-lg border border-gray-100">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">ID</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">类型</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">知识</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">认知</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">情感</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">行为</th>
+                                        <th scope="col" class="relative px-6 py-3">
+                                            <span class="sr-only">操作</span>
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200" id="all-students-table">
+                                    <!-- Rows -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
-    </div>
+    </main>
 
-    <script>
+    <footer class="bg-white border-t border-gray-200 mt-auto">
+        <div class="container mx-auto px-6 py-4 text-center text-sm text-gray-500">
+            &copy; {{ current_year }} EduInsight 智绘学途 | Powered by AI
+        </div>
+    </footer>
 
-        // 当前选中的学生ID (将在 DOMContentLoaded 中初始化)
-        let currentStudentId = null;
-
-        // 初始化页面
-        document.addEventListener('DOMContentLoaded', function() {
-            // 抓取学生列表并填充下拉框
-            fetch('http://127.0.0.1:5010/api/students/') // <-- 将端点更改为 /api/students/
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    return response.json();
-                 })
-                .then(students => { // <-- 为清楚起见，将变量名称更改为 'students'
-                    const studentSelect = document.getElementById('student-select');
-                    // 清空现有选项
-                    studentSelect.innerHTML = '';
-                    students.forEach(student => {
-                        const option = document.createElement('option');
-                        option.value = student.student_id;
-                        option.textContent = `学生 ${student.student_id} - ${student.student_type}`;
-                        studentSelect.appendChild(option);
-                    });
-
-                    // 初始化显示第一个学生 (确保 ID 有效)
-                    if (students.length > 0) { // <-- 使用学生列表
-                        currentStudentId = 34400002;
-                        // 设置默认选中项
-                        studentSelect.value = currentStudentId;
-                        updateStudentDisplay(currentStudentId);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error fetching student list for dropdown:', error);
-                    // 显示错误信息
-                    document.getElementById('student-details').innerHTML = `<p class="text-red-500">加载学生列表时出错: ${error.message}</p>`;
-                });
-            
-            // 渲染全体学生表格
-            renderAllStudentsTable();
-            
-            // 选择学生下拉框事件
-            document.getElementById('student-select').addEventListener('change', function() {
-                currentStudentId = this.value;
-            });
-            
-            // 查看学生按钮事件
-            document.getElementById('view-student').addEventListener('click', function() {
-                updateStudentDisplay(currentStudentId);
-            });
-        });
-
-        // 渲染全体学生表格
-        function renderAllStudentsTable() {
-            const tableBody = document.getElementById('all-students-table');
-            tableBody.innerHTML = '';
-
-            // 抓取所有学生 Id
-            fetch('http://127.0.0.1:5010/api/students/')
-                .then(response => response.json())
-                .then(data => {
-                    console.log("获取了全部数据！")
-                    if (data.error) {
-                        console.error(`Error fetching student data: ${data.error}`);
-                        return;
-                    }
-                    console.log(data)
-
-                    data.forEach(student => {
-                        const row = document.createElement('tr');
-                        row.innerHTML = `
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${student.student_id}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${student.student_type}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${student.knowledge_score}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${student.cognitive_score}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${student.affective_score !== undefined ? student.affective_score.toFixed(2) : 'N/A'}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${student.behavioral_score !== undefined ? student.behavioral_score.toFixed(2) : 'N/A'}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"></td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            </td>
-                        `;
-                        tableBody.appendChild(row);
-
-                         // 为表格中的查看按钮添加事件监听
-                        document.querySelectorAll('.view-student-btn').forEach(button => {
-                            button.addEventListener('click', function() {
-                                const studentId = this.getAttribute('data-id');
-                                document.getElementById('student-select').value = studentId;
-                                updateStudentDisplay(studentId);
-                                // 滚动到页面顶部
-                                window.scrollTo({top: 0, behavior: 'smooth'});
-                            });
-                        });
-                    });
-                });
-        }
-
-        // 更新学生信息显示
-        function updateStudentDisplay(studentId) {
-            if (!studentId) {
-                console.warn("No student ID provided for update.");
-                document.getElementById('student-details').innerHTML = `<p class="text-gray-700">请选择一个学生查看详细信息。</p>`;
-                // 清空其他区域
-                document.getElementById('student-id').textContent = '';
-                document.getElementById('student-type').textContent = '';
-                document.getElementById('student-type').className = `inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800`;
-                document.getElementById('knowledge-score').textContent = '';
-                document.getElementById('cognition-score').textContent = '';
-                document.getElementById('affection-score').textContent = '';
-                document.getElementById('behavior-score').textContent = '';
-                updateRecommendationCard('knowledge-recommendations', []);
-                updateRecommendationCard('cognitive-recommendations', []);
-                updateRecommendationCard('affective-recommendations', []);
-                updateRecommendationCard('behavioral-recommendations', []);
-                updateRadarCharts({}); // 清空雷达图
-                return;
-            }
-
-            // 显示加载状态
-            document.getElementById('student-details').innerHTML = `<p class="text-gray-700">正在加载学生 ${studentId} 的基本数据...</p>`;
-            updateRecommendationCard('knowledge-recommendations', ['加载中...']);
-            updateRecommendationCard('cognitive-recommendations', ['加载中...']);
-            updateRecommendationCard('affective-recommendations', ['加载中...']);
-            updateRecommendationCard('behavioral-recommendations', ['加载中...']);
-
-
-            // 1. 抓取学生基础数据
-            fetch(`http://127.0.0.1:5010/api/student/${String(studentId)}`)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    return response.json();
-                })
-                .then(basicData => {
-                    console.log("获取了学生基本数据:", basicData);
-                    if (!basicData || basicData.error) {
-                        console.error("Error fetching student basic data:", basicData ? basicData.error : "No data received");
-                        document.getElementById('student-details').innerHTML = `<p class="text-red-500">无法加载学生 ${studentId} 的基本数据。</p>`;
-                        return;
-                    }
-
-                    // 更新基本信息
-                    document.getElementById('student-id').textContent = basicData.student_id || 'N/A';
-                    const typeElement = document.getElementById('student-type');
-                    typeElement.textContent = basicData.student_type || '待分类';
-                    typeElement.className = `inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getTypeClass(basicData.student_type)}`;
-
-                    // 更新四个维度的分数
-                    document.getElementById('knowledge-score').textContent = basicData.knowledge_score !== undefined ? basicData.knowledge_score : 'N/A';
-                    document.getElementById('cognition-score').textContent = basicData.cognitive_score !== undefined ? basicData.cognitive_score : 'N/A';
-                    document.getElementById('affection-score').textContent = basicData.affective_score !== undefined ? basicData.affective_score : 'N/A';
-                    document.getElementById('behavior-score').textContent = basicData.behavioral_score !== undefined ? basicData.behavioral_score : 'N/A';
-
-                    // 更新详细信息区域 (只显示详细指标，专家诊断将在第二步加载)
-                    let detailsHTML = `
-                        <h3 class="text-lg font-semibold mb-2 text-gray-800">专家诊断</h3>
-                        <p class="text-gray-700 mb-4" id="expert-diagnosis">加载中...</p>
-                        <h3 class="text-lg font-semibold mb-2 text-gray-800">详细指标</h3>
-                    `;
-                    if (basicData.detail_metrics && basicData.detail_metrics.length > 0) {
-                        detailsHTML += '<ul class="list-disc pl-5 text-gray-700 mb-4">';
-                        basicData.detail_metrics.forEach(metric => {
-                            detailsHTML += `<li>${metric.name}: ${metric.value}</li>`;
-                        });
-                        detailsHTML += '</ul>';
-                    } else {
-                        detailsHTML += '<p class="text-gray-700">暂无详细指标信息。</p>';
-                    }
-                    document.getElementById('student-details').innerHTML = detailsHTML;
-
-                    // 更新雷达图 (传递基本数据)
-                    updateRadarCharts(basicData);
-
-                    // 2. 抓取学生详细数据
-                    document.getElementById('expert-diagnosis').textContent = '加载中...'; // 更新诊断区域加载状态
-                    updateRecommendationCard('knowledge-recommendations', ['加载中...']);
-                    updateRecommendationCard('cognitive-recommendations', ['加载中...']);
-                    updateRecommendationCard('affective-recommendations', ['加载中...']);
-                    updateRecommendationCard('behavioral-recommendations', ['加载中...']);
-
-
-                    fetch(`http://127.0.0.1:5010/api/student/${String(studentId)}/details`)
-                        .then(response => {
-                            if (!response.ok) {
-                                throw new Error(`HTTP error! status: ${response.status}`);
-                            }
-                            return response.json();
-                        })
-                        .then(detailData => {
-                            console.log("获取了学生详细数据:", detailData);
-                            if (!detailData || detailData.error) {
-                                console.error("Error fetching student detailed data:", detailData ? detailData.error : "No data received");
-                                document.getElementById('expert-diagnosis').textContent = `无法加载详细数据: ${detailData ? detailData.error : '未知错误'}`;
-                                updateRecommendationCard('knowledge-recommendations', ['加载失败']);
-                                updateRecommendationCard('cognitive-recommendations', ['加载失败']);
-                                updateRecommendationCard('affective-recommendations', ['加载失败']);
-                                updateRecommendationCard('behavioral-recommendations', ['加载失败']);
-                                return;
-                            }
-
-                            // 更新专家诊断并渲染 Markdown
-                            const expertDiagnosisElement = document.getElementById('expert-diagnosis');
-                            if (detailData.expert_diagnosis) {
-                                expertDiagnosisElement.innerHTML = marked.parse(detailData.expert_diagnosis);
-                            } else {
-                                expertDiagnosisElement.textContent = ' ';
-                            }
-
-                            // 3. 抓取学生计划数据 
-                            fetch(`http://127.0.0.1:5010/api/student/${String(studentId)}/plan`)
-                                .then(response => {
-                                    if (!response.ok) {
-                                        throw new Error(`HTTP error! status: ${response.status}`);
-                                    }
-                                    return response.json();
-                                })
-                                .then(planData => {
-                                    console.log("获取了学生计划数据:", planData);
-                                    if (!planData || planData.error) {
-                                        console.error("Error fetching student plan data:", planData ? planData.error : "No data received");
-                                        updateRecommendationCard('knowledge-recommendations', ['加载计划失败']);
-                                        updateRecommendationCard('cognitive-recommendations', ['加载计划失败']);
-                                        updateRecommendationCard('affective-recommendations', ['加载计划失败']);
-                                        updateRecommendationCard('behavioral-recommendations', ['加载计划失败']);
-                                        return;
-                                    }
-
-                                    // 处理计划数据，确保字符串中的换行符正确
-                                    for (const key in planData) {
-                                        if (typeof planData[key] === 'string') {
-                                            planData[key] = planData[key].replace(/\n\n/g, '\n');
-                                        }
-                                    }
-
-                                    // 更新学业规划建议卡片 (来自 /plan)
-                                    // 确保在调用 split 之前检查类型和内容
-                                    const knowledgeRecs = typeof planData["知识维度"] === 'string' && planData["知识维度"].trim().length > 0 ? planData["知识维度"].split('\n') : ['暂无建议'];
-                                    const cognitiveRecs = typeof planData["认知维度"] === 'string' && planData["认知维度"].trim().length > 0 ? planData["认知维度"].split('\n') : ['暂无建议'];
-                                    const affectiveRecs = typeof planData["情感维度"] === 'string' && planData["情感维度"].trim().length > 0 ? planData["情感维度"].split('\n') : ['暂无建议'];
-                                    const behavioralRecs = typeof planData["行为维度"] === 'string' && planData["行为维度"].trim().length > 0 ? planData["行为维度"].split('\n') : ['暂无建议'];
-
-                                    updateRecommendationCard('knowledge-recommendations', knowledgeRecs);
-                                    updateRecommendationCard('cognitive-recommendations', cognitiveRecs);
-                                    updateRecommendationCard('affective-recommendations', affectiveRecs);
-                                    updateRecommendationCard('behavioral-recommendations', behavioralRecs);
-                                })
-                                .catch(error => {
-                                    console.error('Fetch plan data error:', error);
-                                    updateRecommendationCard('knowledge-recommendations', [`加载计划时出错: ${error.message}`]);
-                                    updateRecommendationCard('cognitive-recommendations', [`加载计划时出错: ${error.message}`]);
-                                    updateRecommendationCard('affective-recommendations', [`加载计划时出错: ${error.message}`]);
-                                    updateRecommendationCard('behavioral-recommendations', [`加载计划时出错: ${error.message}`]);
-                                });
-
-                        })
-                        .catch(error => {
-                            console.error('Fetch detailed data error:', error);
-                            document.getElementById('expert-diagnosis').textContent = `加载详细数据时出错: ${error.message}`;
-                            updateRecommendationCard('knowledge-recommendations', ['加载失败']);
-                            updateRecommendationCard('cognitive-recommendations', ['加载失败']);
-                            updateRecommendationCard('affective-recommendations', ['加载失败']);
-                            updateRecommendationCard('behavioral-recommendations', ['加载失败']);
-                        });
-                })
-                .catch(error => {
-                    console.error('Fetch basic data error:', error);
-                    document.getElementById('student-details').innerHTML = `<p class="text-red-500">加载学生基本数据时出错: ${error.message}</p>`;
-                    // 清空或显示加载失败状态给详细数据区域
-                    document.getElementById('expert-diagnosis').textContent = '加载失败';
-                    updateRecommendationCard('knowledge-recommendations', ['加载失败']);
-                    updateRecommendationCard('cognitive-recommendations', ['加载失败']);
-                    updateRecommendationCard('affective-recommendations', ['加载失败']);
-                    updateRecommendationCard('behavioral-recommendations', ['加载失败']);
-                });
-        }
-
-        // 更新建议卡片内容
-        function updateRecommendationCard(elementId, recommendations) {
-            const ulElement = document.getElementById(elementId);
-            if (!ulElement) return; // 确保元素存在
-
-            ulElement.innerHTML = ''; // 清空旧建议
-
-            if (recommendations && recommendations.length > 0) {
-                recommendations.forEach(rec => {
-                    const li = document.createElement('li');
-                    li.className = 'flex items-start';
-                    li.innerHTML = `
-                        <i class="fas fa-check-circle mt-0.5 mr-1.5 text-green-500"></i>
-                        <span>${marked.parse(rec)}</span>
-                    `;
-                    ulElement.appendChild(li);
-                });
-            } else {
-                const li = document.createElement('li');
-                li.textContent = '暂无建议';
-                ulElement.appendChild(li);
-            }
-        }
-
-        function getTypeClass(studentType) {
-            const typeColorMapping = {
-                '优秀全面型': 'bg-green-100 text-green-800',
-                '高压成绩型': 'bg-yellow-100 text-yellow-800',
-                '潜力型': 'bg-blue-100 text-blue-800',
-                '警示型': 'bg-red-100 text-red-800',
-                '待分类': 'bg-gray-100 text-gray-800'
-            };
-            return typeColorMapping[studentType] || 'bg-gray-100 text-gray-800';
-        }
-
-        // 更新雷达图 (使用 data 对象)
-        function updateRadarCharts(data) {
-            // 清除旧的雷达图
-            if (window.studentRadarChart) {
-                window.studentRadarChart.destroy();
-            }
-            if (window.comparisonRadarChart) {
-                window.comparisonRadarChart.destroy();
-            }
-
-            // 雷达图配置
-            const radarData = {
-                labels: ['知识维度', '认知维度', '情感维度', '行为维度'],
-                datasets: [{
-                    label: `学生 ${data.student_id} 的个人画像`, // 使用 data.student_id
-                    data: [
-                        data.knowledge_score !== undefined ? data.knowledge_score : 0, // 使用 data.knowledge_score
-                        data.cognitive_score !== undefined ? data.cognitive_score : 0, // 使用 data.cognitive_score
-                        data.affective_score !== undefined ? data.affective_score : 0, // 使用 data.affective_score
-                        data.behavioral_score !== undefined ? data.behavioral_score : 0 // 使用 data.behavioral_score
-                    ],
-                    backgroundColor: 'rgba(99, 102, 241, 0.2)',
-                    borderColor: 'rgba(99, 102, 241, 1)',
-                    pointBackgroundColor: 'rgba(99, 102, 241, 1)',
-                    pointBorderColor: '#fff',
-                    pointHoverBackgroundColor: '#fff',
-                    pointHoverBorderColor: 'rgba(99, 102, 241, 1)'
-                }]
-            };
-
-            const comparisonRadarData = {
-                labels: ['知识维度', '认知维度', '情感维度', '行为维度'],
-                datasets: [
-                    {
-                        label: `学生 ${data.student_id} 的个人画像`, // 使用 data.student_id
-                        data: [
-                            data.knowledge_score !== undefined ? data.knowledge_score : 0, // 使用 data.knowledge_score
-                            data.cognitive_score !== undefined ? data.cognitive_score : 0, // 使用 data.cognitive_score
-                            data.affective_score !== undefined ? data.affective_score : 0, // 使用 data.affective_score
-                            data.behavioral_score !== undefined ? data.behavioral_score : 0 // 使用 data.behavioral_score
-                        ],
-                        backgroundColor: 'rgba(99, 102, 241, 0.2)',
-                        borderColor: 'rgba(99, 102, 241, 1)',
-                        pointBackgroundColor: 'rgba(99, 102, 241, 1)',
-                        pointBorderColor: '#fff',
-                        pointHoverBackgroundColor: '#fff',
-                        pointHoverBorderColor: 'rgba(99, 102, 241, 1)'
-                    },
-                    {
-                        label: '班级平均值',
-                        data: [
-                            77, // 知识维度平均值
-                            77.2,
-                            78.8,
-                            73.2
-                        ],
-                        backgroundColor: 'rgba(239, 68, 68, 0.2)',
-                        borderColor: 'rgba(239, 68, 68, 1)',
-                        pointBackgroundColor: 'rgba(239, 68, 68, 1)',
-                        pointBorderColor: '#fff',
-                        pointHoverBackgroundColor: '#fff',
-                        backgroundColor: 'rgba(239, 68, 68, 0.2)',
-                        borderColor: 'rgba(239, 68, 68, 1)',
-                        pointBackgroundColor: 'rgba(239, 68, 68, 1)',
-                        pointBorderColor: '#fff',
-                        pointHoverBackgroundColor: '#fff',
-                        pointHoverBorderColor: 'rgba(239, 68, 68, 1)'
-                    }
-                ]
-            };
-
-            const radarOptions = {
-                scales: {
-                    r: {
-                        min: 0,
-                        max: 100,
-                        ticks: {
-                            stepSize: 20
-                        }
-                    }
-                },
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                }
-            };
-
-            const comparisonRadarOptions = {
-                scales: {
-                    r: {
-                        min: 0,
-                        max: 100,
-                        ticks: {
-                            stepSize: 20
-                        }
-                    }
-                }
-            };
-
-            // 创建雷达图
-            window.studentRadarChart = new Chart(
-                document.getElementById('student-radar-chart').getContext('2d'),
-                {
-                    type: 'radar',
-                    data: radarData,
-                    options: radarOptions
-                }
-            );
-
-            window.comparisonRadarChart = new Chart(
-                document.getElementById('comparison-radar-chart').getContext('2d'),
-                {
-                    type: 'radar',
-                    data: comparisonRadarData,
-                    options: comparisonRadarOptions
-                }
-            );
-        }
-    </script>
+    <!-- Main JS -->
+    <script src="{{ url_for('static', filename='js/main.js') }}?v={{ range(1, 10000) | random }}"></script>
 </body>
 </html>

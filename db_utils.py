@@ -6,12 +6,13 @@ def create_database():
     try:
         mydb = mysql.connector.connect(
             host=db_config['host'],
+            port=db_config.get('port', 3306),
             user=db_config['user'],
             password=db_config['password']
         )
         mycursor = mydb.cursor()
-        mycursor.execute("CREATE DATABASE IF NOT EXISTS mydatabase")
-        print("数据库创建成功")
+        mycursor.execute(f"CREATE DATABASE IF NOT EXISTS {db_config['database']}")
+        print(f"数据库 {db_config['database']} 创建成功")
     except mysql.connector.Error as err:
         print(f"创建数据库出错: {err}")
 
@@ -19,9 +20,10 @@ def create_students_table():
     try:
         mydb = mysql.connector.connect(
             host=db_config['host'],
+            port=db_config.get('port', 3306),
             user=db_config['user'],
             password=db_config['password'],
-            database='mydatabase'
+            database=db_config['database']
         )
         mycursor = mydb.cursor()
 
@@ -59,9 +61,10 @@ def create_recommendations_table():
     try:
         mydb = mysql.connector.connect(
             host=db_config['host'],
+            port=db_config.get('port', 3306),
             user=db_config['user'],
             password=db_config['password'],
-            database='mydatabase'
+            database=db_config['database']
         )
         mycursor = mydb.cursor()
 
@@ -85,9 +88,10 @@ def insert_student_data(student_data):
     try:
         mydb = mysql.connector.connect(
             host=db_config['host'],
+            port=db_config.get('port', 3306),
             user=db_config['user'],
             password=db_config['password'],
-            database='mydatabase'
+            database=db_config['database']
         )
         mycursor = mydb.cursor()
 
@@ -123,9 +127,10 @@ def insert_recommendation_data(student_id, dimension, recommendation):
     try:
         mydb = mysql.connector.connect(
             host=db_config['host'],
+            port=db_config.get('port', 3306),
             user=db_config['user'],
             password=db_config['password'],
-            database='mydatabase'
+            database=db_config['database']
         )
         mycursor = mydb.cursor()
 
@@ -146,9 +151,10 @@ def import_excel_data(file_path, table_name):
     try:
         mydb = mysql.connector.connect(
             host=db_config['host'],
+            port=db_config.get('port', 3306),
             user=db_config['user'],
             password=db_config['password'],
-            database='mydatabase'
+            database=db_config['database']
         )
         mycursor = mydb.cursor()
 
@@ -192,9 +198,10 @@ def store_text_data(table_name, text_data):
     try:
         mydb = mysql.connector.connect(
             host=db_config['host'],
+            port=db_config.get('port', 3306),
             user=db_config['user'],
             password=db_config['password'],
-            database='mydatabase'
+            database=db_config['database']
         )
         mycursor = mydb.cursor()
 

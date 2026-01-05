@@ -32,41 +32,25 @@ class StudentAgent:
 
         # 定义专家智能体系统
         self.expert_agents = {
-            "学生画像智能体": {
-                "role": "你是一位专业的学生画像分析师...",
-                "responsibility": "分析学生的知识、认知、情感、行为等维度得分及相关数据，生成个性化的学生画像报告。"
-            },
-            "教育诊断专家": {
-                "role": "你是一位拥有20年经验的教育诊断专家...",
-                "responsibility": "分析学生的学习数据，识别优势和不足，提供专业的诊断报告"
+            "中心调度智能体": {
+                "role": "你是一个教育系统的中心调度与决策核心，承担权重分配与冲突协调功能。",
+                "responsibility": "统筹各领域专家的诊断意见，基于'风险优先协议'（Risk-First Protocol）进行多目标优化决策。当学科提升建议与心理健康风险发生冲突时，负责动态调整各维度的干预权重，输出最终的平衡方案。"
             },
             "学科教学专家": {
-                "role": "你是一位资深的学科教学专家...",
-                "responsibility": "根据学生在知识维度的表现，提供3-5条针对性的学科学习建议和资源推荐"
+                "role": "你是一位资深的学科教学专家，擅长维果茨基ZPD理论与布鲁姆认知分类学。",
+                "responsibility": "[识别认知断层] 分析PVMATH（数学成绩）与ST276Q（问题解决能力）的背离，定位高分低能或基础薄弱点。[设计ZPD任务] 生成略高于当前水平的阶梯式学习任务，推荐微课与拓展阅读。"
             },
             "认知心理学家": {
-                "role": "你是一位资深的认知心理学家...",
-                "responsibility": "分析学生的认知特点，提供3-5条认知能力培养和思维方式优化的专业建议，确保建议具体、可操作且具有深度。"
+                "role": "你是一位认知心理学家，精通Flavell元认知理论与SRL自我调节学习。",
+                "responsibility": "[评估品质思维] 分析ST307Q（任务坚持）与ST326Q（分心/数字使用）的关系，区分策略缺失与意志力薄弱。[训练元认知策略] 制定番茄工作法、出声思维任务，引导学生监控思维过程。"
             },
             "教育心理咨询师": {
-                "role": "你是一位专业的教育心理咨询师...",
-                "responsibility": "关注学生的情感状态，提供2-3条情绪管理、压力应对和心理健康建议"
+                "role": "你是一位教育心理咨询师，基于Pekrun控制-价值理论与积极心理学。",
+                "responsibility": "[情绪风险反馈] 识别ST297Q（高焦虑）或ST034Q（低归属感）等阻断性情感因素。[提供情绪处方] 生成引导话术、考前放松预案，建议参与特定社团活动以重建归属感。"
             },
             "学习行为指导专家": {
-                "role": "你是一位资深的学习行为指导专家...",
-                "responsibility": "根据学生的行为模式，提供3-5条习惯培养、行为改变和学习环境优化的具体策略，确保策略具有可行性和针对性。"
-            },
-            "教育人工智能专家": {
-                "role": "你是一位教育人工智能专家...",
-                "responsibility": "整合各专家的建议，设计2-3条系统性的智能干预方案，并推荐适合的数字化学习资源和工具"
-            },
-            "风险告警智能体": {
-                "role": "你是一个风险告警系统，负责根据学生的风险评估结果发送警报。",
-                "responsibility": "接收学生的风险等级和因素，生成相应的告警信息。"
-            },
-            "知识诊断LLM": {
-                "role": "你是一个专业的知识诊断模型，擅长深入分析学生的知识掌握情况和薄弱点。",
-                "responsibility": "根据学生的学习数据，诊断其知识结构和理解程度。"
+                "role": "你是一位学习行为指导专家，运用行为主义强化理论与助推理论。",
+                "responsibility": "[投入度监测] 关联ST062Q（缺勤）与ST326Q（数字资源使用），发现低效时间管理模式。[优化行为习惯] 制定数字化设备使用公约，设计打卡-反馈激励机制，利用助推策略优化时间分配。"
             }
         }
 
@@ -263,29 +247,29 @@ class StudentAgent:
         analysis['risk_level'] = risk_level
         analysis['risk_factors'] = risk_factors
 
-        # 让学生画像智能体生成学生画像，包含风险信息
+        # 让中心调度智能体生成学生画像，包含风险信息
         try:
             profile_analysis_query = (
                 f"请根据以下学生的学习数据和维度得分，生成一份详细的学生画像报告，**并在报告中明确指出学生的风险等级和风险因素**：\n"
                 f"{json.dumps(analysis, ensure_ascii=False, indent=2)}\n\n"
                 f"请在画像中整合知识、认知、情感、行为四个维度的分析，突出学生的特点、优势和潜在问题，**并重点分析可能存在的风险。**报告应结构清晰，语言专业但易于理解。"
             )
-            student_profile_report = self._consult_expert("学生画像智能体", profile_analysis_query)['response']
+            student_profile_report = self._consult_expert("中心调度智能体", profile_analysis_query)['response']
             analysis['student_profile_report'] = student_profile_report
         except Exception as e:
-            print(f"学生画像智能体分析出错: {e}")
+            print(f"中心调度智能体分析出错: {e}")
             analysis['student_profile_report'] = "无法生成学生画像报告"
 
-        # 让教育诊断专家进行深度分析
+        # 让中心调度智能体进行深度分析与冲突协调
         try:
             expert_analysis = self._consult_expert(
-                "教育诊断专家",
-                f"我需要你分析一位学生的学习情况，以下是该学生的数据：\n{json.dumps(analysis, ensure_ascii=False, indent=2)}\n\n"
-                f"请你详细分析这位学生的特点、优势、不足和发展方向。请关注以下维度：知识维度、认知维度、情感维度和行为维度."
+                "中心调度智能体",
+                f"我需要你作为中心调度核心，分析一位学生的学习情况，并统筹各维度可能存在的矛盾（如学业压力与心理健康冲突）。以下是该学生的数据：\n{json.dumps(analysis, ensure_ascii=False, indent=2)}\n\n"
+                f"请你详细分析这位学生的特点、优势、不足。请基于'风险优先协议'，识别潜在的教育目标冲突，并给出权衡后的综合诊断意见。"
             )['response']
             analysis['expert_diagnosis'] = expert_analysis
         except Exception as e:
-            print(f"教育诊断专家分析出错: {e}")
+            print(f"中心调度智能体分析出错: {e}")
             analysis['expert_diagnosis'] = "无法获取专家分析"
 
         # 保存分析结果
@@ -293,13 +277,9 @@ class StudentAgent:
         print(json.dumps(analysis, indent=2, ensure_ascii=False))
 
         # 在分析过程中，如果识别到高风险，可以触发 "发送告警" action
+        # 简化：直接由中心调度智能体在报告中指出，或此处仅作简单判断
         if analysis['risk_level'] == "高风险":
-            alert_query = f"学生ID {student_id} 被识别为高风险，风险因素：{', '.join(analysis['risk_factors'])}，请采取相应措施。"
-            alert_response = self._consult_expert("风险告警智能体", alert_query, available_actions=["发送告警"])
-            if alert_response['action'] == "发送告警":
-                print(f"系统已发送告警：{alert_response['response']}")
-            else:
-                print(f"风险告警智能体未能发送告警：{alert_response['response']}")
+             pass # 告警逻辑保留或由中心调度智能体内部处理
 
         return analysis
 
@@ -430,13 +410,6 @@ class StudentAgent:
 
 
         return recommendations
-
-        if function_name == "log_student_event":
-            self._log_student_event(parameters.get("student_id"), parameters.get("event_type"), parameters.get("details"))
-            return "事件已记录"
-        # ... (添加其他可执行的函数) ...
-        else:
-            return f"未知函数: {function_name}"
 
     def _log_student_event(self, student_id, event_type, details):
         print(f"记录事件 - 学生ID: {student_id}, 类型: {event_type}, 详情: {details}")

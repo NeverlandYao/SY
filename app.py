@@ -1,116 +1,18 @@
 from flask import Flask, render_template, request, jsonify
 import pandas as pd
-import json
 import os
 import db_utils  # 导入数据库工具模块
 import student_agent as sa
 import data_processing as dp
-# 移除未使用的绘图导入
-import numpy as np
-import time
 import traceback
 from datetime import datetime # 为了在页脚显示年份
 
-import db_utils  # 导入数据库工具
-import os
 app = Flask(__name__, template_folder='template')
 
 # 全局变量
 student_data = None
 agent = None
 system_ready = False
-
-# --- 数据加载器初始化 ---
-# 尝试初始化实际的 DataLoader
-data_loader = None
-
-# --- 类型颜色映射 (从 JS 移动以保持一致性) ---
-type_color_mapping = {
-    '优秀全面型': 'bg-success',
-    '高压成绩型': 'bg-warning text-dark',
-    '潜力型': 'bg-info text-dark',
-    '警示型': 'bg-danger',
-    '待分类': 'bg-secondary',
-    'Excellent': 'bg-success',
-    'High Pressure': 'bg-warning text-dark',
-    'Potential': 'bg-info text-dark',
-    'Warning': 'bg-danger',
-    'Unclassified': 'bg-secondary'
-}
-
-# --- 数据映射函数 ---
-def map_gender(value):
-    """将性别代码映射为文本"""
-    if value == 1:
-        return "女"
-    elif value == 2:
-        return "男"
-    if value is None or pd.isna(value):  # 检查 None 或 NaN (pandas可能会生成np.nan)
-        return "未回答"
-    return "未知"
-
-def map_grade(value):
-    """将年级代码映射为文本"""
-    grade_map = {
-        7: "7年级", 8: "8年级", 9: "9年级", 10: "10年级",
-        11: "11年级", 12: "12年级", 13: "13年级"
-    }
-    if value is None or pd.isna(value):
-        return "未回答"
-    # 使用 get 方法安全地获取映射值，如果不存在则返回默认值
-    return grade_map.get(value, f"未知代码 ({value})")
-
-def map_agreement(value):
-    """将同意程度代码映射为文本"""
-    agreement_map = {
-        1: "非常同意",
-        2: "同意",
-        3: "不同意",
-        4: "非常不同意"
-    }
-    if value is None or pd.isna(value):
-         return "未回答"
-    return agreement_map.get(value, "未回答或无效")
-
-
-def process_student_data(student_data):
-    """将单个学生的原始数据（字典）处理成结构化的画像数据（字典）。
-    确保这里的 get() 调用使用了正确的原始字段名
-    """
-    if not student_data or not isinstance(student_data, dict):
-        return None
-
-    processed_data = {}
-
-    # --- 基本信息 ---
-    processed_data["国际学生ID"] = student_data.get("CNTSTUID")
-    processed_data["性别"] = map_gender(student_data.get("ST004D01T"))
-    processed_data["学生年级"] = map_grade(student_data.get("ST001D01T"))
-
-    # --- 学业成绩 ---
-    processed_data["数学成绩 (分数)"] = student_data.get("PV1MATH")
-    processed_data["阅读成绩 (分数)"] = student_data.get("PV1READ")
-    processed_data["科学成绩 (分数)"] = student_data.get("PV1SCIE")
-
-    # 计算平均成绩，只包括非 None 的分数
-    scores = [
-        score for score in [
-            processed_data["数学成绩 (分数)"],
-            processed_data["阅读成绩 (分数)"],
-            processed_data["科学成绩 (分数)"]
-        ] if score is not None and pd.notna(score) # 确保分数不是 NaN
-    ]
-    # 避免除以零错误
-    processed_data["平均成绩 (分数)"] = sum(scores) / len(scores) if scores else None
-
-
-    # --- 学习态度/观念 (示例) ---
-    processed_data["对观点A的看法"] = map_agreement(student_data.get("ST099Q01TA"))
-    processed_data["对观点B的看法"] = map_agreement(student_data.get("ST099Q02TA"))
-    processed_data["对观点C的看法"] = map_agreement(student_data.get("ST099Q03TA"))
-    processed_data["对观点D的看法"] = map_agreement(student_data.get("ST099Q04TA"))
-
-    return processed_data
 
 # --- 初始化 ---
 def initialize_system():
@@ -127,7 +29,7 @@ def initialize_system():
         if os.path.exists(data_file_path):
             student_data = pd.read_csv(data_file_path)
             print(f"Loaded processed data from {data_file_path}, {len(student_data)} records.")
-        # elif os.path.exists(excel_file_path):
+        elif os.path.exists(excel_file_path):
             print(f"Processing raw data from {excel_file_path}...")
             raw_data = dp.load_data(excel_file_path)
             if raw_data is None:
@@ -184,7 +86,7 @@ initialize_system()
 @app.route('/')
 def index():
     """渲染主仪表板页面。"""
-    global student_data, system_ready, data_loader
+    global student_data, system_ready
 
     if not system_ready:
         return render_template('error.html', message="系统初始化失败，请检查控制台输出。")
@@ -195,8 +97,10 @@ def index():
     valid_dimension_cols = [col for col in dimension_cols if col in student_data.columns]
 
     if student_data is not None:
+        # 限制只显示前 20 条数据
+        limit_count = 20
         # print(student_data)
-        for _, row in student_data.iterrows():
+        for _, row in student_data.head(limit_count).iterrows():
             student_dict = {
                 'student_id': int(row['student_id']),
                 'student_type': row.get('学生类型', '待分类'),
@@ -210,7 +114,7 @@ def index():
     else:
         students_list = [] # 如果 student_data 为 None，则初始化为空列表
 
-    return render_template('index.html', students=students_list)
+    return render_template('index.html', students=students_list, current_year=datetime.now().year)
 
 
 @app.route('/api/student/<int:student_id>')
@@ -319,9 +223,10 @@ def get_all_students():
         return jsonify({"error": "Backend service not ready, student data failed to load."}), 500
 
     try:
-        # 直接从 student_data DataFrame 获取数据，并转换为字典列表
+        # 限制只返回前 20 条数据
+        limit_count = 20
         students_list = []
-        for _, row in student_data.iterrows():
+        for _, row in student_data.head(limit_count).iterrows():
             student = {
                 'student_id': int(row['student_id']),
                 'student_type': row.get('学生类型', '待分类'),

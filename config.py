@@ -1,3 +1,8 @@
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
 # 中文字体映射（原data.py中的label_map全局化）
 LABEL_MAP = {
     '知识维度_综合得分': 'Knowledge',
@@ -26,8 +31,8 @@ LABEL_MAP = {
 # 智能体配置
 MODELSCOPE_CONFIG = {
     'base_url': 'https://api-inference.modelscope.cn/v1/',
-    'api_key': '8a962720-9cb7-45d3-af59-310e333b97a5',
-    'model_id': 'Qwen/Qwen2.5-7B-Instruct-1M'
+    'api_key': os.getenv('MODELSCOPE_API_KEY'),
+    'model_id': 'Qwen/Qwen3-32B'
 }
 
 # 可视化配置
@@ -39,7 +44,9 @@ VISUAL_STYLE = {
 
 # 数据库配置
 db_config = {
-    'host': 'localhost',
-    'user': 'root',
-    'password': 'zhangyao0420'
+    'host': os.getenv('MYSQL_HOST', 'localhost'),
+    'port': int(os.getenv('MYSQL_PORT', 3306)),
+    'user': os.getenv('MYSQL_USER', 'root'),
+    'password': os.getenv('MYSQL_PASSWORD', ''),
+    'database': os.getenv('MYSQL_DATABASE', 'student_portrait_system')
 }
